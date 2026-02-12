@@ -168,7 +168,7 @@ export function AgentPromptEditor({
 
   return (
     <>
-      <div className="fixed inset-0 z-50 bg-black/80">
+      <div className="fullscreen-modal fixed inset-0 z-50 bg-black/80">
         <div className="bg-bg-secondary w-full h-full flex flex-col overflow-hidden">
           {/* Header */}
           <div className="flex items-center justify-between p-4 border-b border-border shrink-0">

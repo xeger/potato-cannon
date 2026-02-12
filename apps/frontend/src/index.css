@@ -844,6 +844,12 @@ button, a, [role="button"] {
   -webkit-app-region: no-drag;
 }
 
+/* Full-page modals: offset below header instead of covering it */
+.electron-app .fullscreen-modal {
+  top: var(--electron-header-height) !important;
+  height: calc(100vh - var(--electron-header-height)) !important;
+}
+
 /* ================================================
    BRAINSTORM MASTER-DETAIL LAYOUT
    Container query responsive pattern

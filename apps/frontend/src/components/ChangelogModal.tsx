@@ -26,7 +26,7 @@ export function ChangelogModal({ projectId, onClose }: ChangelogModalProps) {
   }, [data?.changelog]);
 
   return (
-    <div className="fixed inset-0 bg-black/70 flex items-center justify-center z-50">
+    <div className="fullscreen-modal fixed inset-0 bg-black/70 flex items-center justify-center z-50">
       <div className="bg-gray-800 rounded-lg p-6 max-w-2xl w-full mx-4 border border-gray-700 max-h-[80vh] flex flex-col">
         <h2 className="text-xl font-bold text-white mb-4">Template Changelog</h2>
         <div className="flex-1 overflow-y-auto">
