@@ -79,7 +79,7 @@ export function ArtifactViewerFull({
 
   return (
     <div
-      className="fixed inset-0 z-50 bg-black/80"
+      className="fullscreen-modal fixed inset-0 z-50 bg-black/80"
     >
       <div className="bg-bg-secondary w-full h-full flex flex-col overflow-hidden">
         {/* Header */}
