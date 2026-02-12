@@ -1,0 +1,6 @@
+export { TicketDetailPanel } from './TicketDetailPanel'
+export { DetailsTab } from './DetailsTab'
+export { SessionsTab } from './SessionsTab'
+export { HistoryTab } from './HistoryTab'
+export { SettingsTab } from './SettingsTab'
+export { ActivityTab } from './ActivityTab'

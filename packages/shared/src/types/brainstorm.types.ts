@@ -1,0 +1,30 @@
+export type BrainstormStatus = 'active' | 'completed'
+
+export interface Brainstorm {
+  id: string
+  projectId?: string
+  name: string
+  status: BrainstormStatus
+  createdAt: string
+  updatedAt: string
+  conversationId?: string | null
+  createdTicketId?: string | null
+  hasActiveSession?: boolean
+}
+
+export interface BrainstormQuestion {
+  conversationId: string
+  question: string
+  options?: string[]
+  askedAt: string
+}
+
+export interface BrainstormMessage {
+  type: 'question' | 'user' | 'error' | 'notification'
+  text: string
+  conversationId?: string
+  options?: string[]
+  askedAt?: string
+  sentAt?: string
+  timestamp?: string
+}

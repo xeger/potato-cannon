@@ -1,0 +1,25 @@
+{
+  "name": "@potato-cannon/desktop",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "main": "out/main/index.js",
+  "scripts": {
+    "dev": "electron-vite build && NODE_ENV=development electron .",
+    "dev:watch": "electron-vite dev",
+    "build": "electron-vite build && electron-builder",
+    "preview": "electron-vite preview",
+    "typecheck": "tsc --noEmit",
+    "clean": "rm -rf out release"
+  },
+  "dependencies": {
+    "@potato-cannon/daemon": "workspace:*"
+  },
+  "devDependencies": {
+    "@types/node": "^20.19.30",
+    "electron": "^40.1.0",
+    "electron-builder": "^26.4.0",
+    "electron-vite": "^5.0.0",
+    "typescript": "^5.9.3"
+  }
+}

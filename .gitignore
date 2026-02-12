@@ -1,0 +1,35 @@
+# Dependencies
+node_modules/
+
+# Build outputs
+dist/
+*.tsbuildinfo
+apps/*/dist/
+apps/*/out/
+apps/*/release/
+packages/*/dist/
+
+# Logs
+*.log
+
+# System
+.DS_Store
+
+# Coverage
+coverage/
+
+# Lock files (using pnpm)
+package-lock.json
+
+# Electron outputs
+apps/desktop/out/
+apps/desktop/release/
+
+# TypeScript build info
+*.tsbuildinfo
+
+# Potato Cannon local data
+.potato/
+
+# Plans (generated)
+docs/plans/

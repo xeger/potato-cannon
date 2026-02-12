@@ -1,0 +1,164 @@
+// src/marketplace/bootstrap.ts
+import { execSync, spawn } from 'child_process';
+import path from 'path';
+import os from 'os';
+import fs from 'fs/promises';
+import { existsSync, rmSync } from 'fs';
+import { fileURLToPath } from 'url';
+
+const __dirname = path.dirname(fileURLToPath(import.meta.url));
+
+const MARKETPLACE_NAME = 'potato-cannon-marketplace';
+const PLUGIN_NAME = 'potato';
+const MARKETPLACE_DIR = path.join(os.homedir(), '.potato-cannon', 'marketplace');
+const CLAUDE_CACHE_DIR = path.join(os.homedir(), '.claude', 'plugins', 'cache', MARKETPLACE_NAME);
+
+interface CommandResult {
+  stdout: string;
+  stderr: string;
+}
+
+function checkClaudeCli(): boolean {
+  try {
+    execSync('which claude', { stdio: 'pipe' });
+    return true;
+  } catch {
+    return false;
+  }
+}
+
+function runClaudeCommand(args: string[]): Promise<CommandResult> {
+  return new Promise((resolve, reject) => {
+    const child = spawn('claude', args, { stdio: 'pipe' });
+
+    let stdout = '';
+    let stderr = '';
+
+    child.stdout?.on('data', (data: Buffer) => {
+      stdout += data;
+    });
+    child.stderr?.on('data', (data: Buffer) => {
+      stderr += data;
+    });
+
+    child.on('close', (code) => {
+      if (code === 0) {
+        resolve({ stdout, stderr });
+      } else {
+        reject(new Error(stderr || `Command failed with code ${code}`));
+      }
+    });
+
+    child.on('error', reject);
+  });
+}
+
+async function copyDirectoryRecursive(src: string, dest: string): Promise<void> {
+  await fs.mkdir(dest, { recursive: true });
+  const entries = await fs.readdir(src, { withFileTypes: true });
+
+  for (const entry of entries) {
+    const srcPath = path.join(src, entry.name);
+    const destPath = path.join(dest, entry.name);
+
+    if (entry.isDirectory()) {
+      await copyDirectoryRecursive(srcPath, destPath);
+    } else {
+      await fs.copyFile(srcPath, destPath);
+    }
+  }
+}
+
+/**
+ * Bootstrap the potato-cannon marketplace on daemon startup.
+ * This ensures the latest marketplace is always installed:
+ * 1. Delete old ~/.potato-cannon/marketplace folder
+ * 2. Copy templates/marketplace/ to ~/.potato-cannon/marketplace
+ * 3. Uninstall old marketplace from Claude (including cache)
+ * 4. Install marketplace and plugin from local path
+ */
+export async function bootstrapMarketplace(): Promise<void> {
+  console.log('[marketplace] Bootstrapping marketplace...');
+
+  const hasClaudeCli = checkClaudeCli();
+  if (!hasClaudeCli) {
+    console.log('[marketplace] Claude CLI not found, skipping marketplace bootstrap');
+    console.log('[marketplace] Install Claude CLI and restart daemon to enable marketplace');
+    return;
+  }
+
+  // Step 1: Delete old marketplace directory
+  if (existsSync(MARKETPLACE_DIR)) {
+    console.log('[marketplace] Removing old marketplace directory...');
+    rmSync(MARKETPLACE_DIR, { recursive: true, force: true });
+  }
+
+  // Step 2: Copy templates/marketplace/ to ~/.potato-cannon/marketplace
+  // Path to bundled marketplace (relative to compiled dist/marketplace/)
+  const bundledMarketplace = path.join(__dirname, '..', '..', 'templates', 'marketplace');
+
+  if (!existsSync(bundledMarketplace)) {
+    console.log(`[marketplace] No bundled marketplace found at ${bundledMarketplace}`);
+    return;
+  }
+
+  console.log('[marketplace] Copying fresh marketplace from templates...');
+  await copyDirectoryRecursive(bundledMarketplace, MARKETPLACE_DIR);
+  console.log(`[marketplace] Marketplace copied to ${MARKETPLACE_DIR}`);
+
+  // Step 3: Uninstall old marketplace (plugin first, then marketplace)
+  const pluginId = `${PLUGIN_NAME}@${MARKETPLACE_NAME}`;
+
+  try {
+    console.log('[marketplace] Uninstalling old plugin...');
+    await runClaudeCommand(['plugin', 'uninstall', pluginId]);
+    console.log('[marketplace] Old plugin uninstalled');
+  } catch {
+    // Plugin may not have been installed
+  }
+
+  try {
+    console.log('[marketplace] Removing old marketplace...');
+    await runClaudeCommand(['plugin', 'marketplace', 'remove', MARKETPLACE_NAME]);
+    console.log('[marketplace] Old marketplace removed');
+  } catch {
+    // Marketplace may not have been installed
+  }
+
+  // Clear Claude's marketplace cache
+  if (existsSync(CLAUDE_CACHE_DIR)) {
+    console.log('[marketplace] Clearing marketplace cache...');
+    rmSync(CLAUDE_CACHE_DIR, { recursive: true, force: true });
+  }
+
+  // Step 4: Install marketplace from local path and install plugin
+  try {
+    console.log('[marketplace] Installing marketplace from local path...');
+    await runClaudeCommand(['plugin', 'marketplace', 'add', MARKETPLACE_DIR]);
+    console.log('[marketplace] Marketplace installed');
+  } catch (err) {
+    const errorMsg = (err as Error).message;
+    if (errorMsg.includes('already installed') || errorMsg.includes('already exists')) {
+      console.log('[marketplace] Marketplace already installed');
+    } else {
+      console.error(`[marketplace] Failed to install marketplace: ${errorMsg}`);
+      return;
+    }
+  }
+
+  try {
+    console.log('[marketplace] Installing potato plugin...');
+    await runClaudeCommand(['plugin', 'install', pluginId]);
+    console.log('[marketplace] Plugin installed');
+  } catch (err) {
+    const errorMsg = (err as Error).message;
+    if (errorMsg.includes('already installed')) {
+      console.log('[marketplace] Plugin already installed');
+    } else {
+      console.error(`[marketplace] Failed to install plugin: ${errorMsg}`);
+      return;
+    }
+  }
+
+  console.log('[marketplace] Marketplace bootstrap complete');
+}

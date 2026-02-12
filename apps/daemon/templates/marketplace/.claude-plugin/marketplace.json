@@ -1,0 +1,19 @@
+{
+  "$schema": "https://anthropic.com/claude-code/marketplace.schema.json",
+  "name": "potato-cannon-marketplace",
+  "version": "1.0.0",
+  "description": "Multi-agent development pipeline plugins for Claude Code",
+  "owner": {
+    "name": "crathgeb",
+    "email": "chrisrathgeb@gmail.com"
+  },
+  "plugins": [
+    {
+      "name": "potato",
+      "description": "Multi-agent software engineering pipeline with orchestrator, discovery, planner, engineer, and QA agents",
+      "version": "1.0.0",
+      "source": "./plugins/potato",
+      "category": "development"
+    }
+  ]
+}

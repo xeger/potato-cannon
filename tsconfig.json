@@ -1,0 +1,9 @@
+{
+  "files": [],
+  "references": [
+    { "path": "packages/shared" },
+    { "path": "apps/daemon" },
+    { "path": "apps/frontend" },
+    { "path": "apps/desktop" }
+  ]
+}

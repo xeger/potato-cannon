@@ -1,0 +1,27 @@
+{
+  "name": "potato-cannon-monorepo",
+  "version": "4.0.0",
+  "private": true,
+  "license": "SEE LICENSE IN LICENSE.md",
+  "type": "module",
+  "scripts": {
+    "dev": "pnpm --filter @potato-cannon/daemon dev & pnpm --filter @potato-cannon/frontend dev",
+    "dev:daemon": "pnpm --filter @potato-cannon/daemon dev",
+    "dev:frontend": "pnpm --filter @potato-cannon/frontend dev",
+    "dev:desktop": "pnpm --filter @potato-cannon/desktop dev",
+    "build": "pnpm -r build",
+    "build:shared": "pnpm --filter @potato-cannon/shared build",
+    "build:daemon": "pnpm --filter @potato-cannon/daemon build",
+    "build:frontend": "pnpm --filter @potato-cannon/frontend build",
+    "build:desktop": "pnpm --filter @potato-cannon/desktop build",
+    "typecheck": "tsc --build",
+    "test": "pnpm -r test",
+    "clean": "pnpm -r clean",
+    "lint": "pnpm -r lint"
+  },
+  "engines": {
+    "node": ">=18.0.0",
+    "pnpm": ">=8.0.0"
+  },
+  "packageManager": "pnpm@9.15.0"
+}

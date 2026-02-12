@@ -1,0 +1,1066 @@
+@import "tailwindcss";
+
+/* Custom theme - matches existing dark mode design */
+@theme {
+  /* Colors */
+  --color-bg-primary: #0d1117;
+  --color-bg-secondary: #161b22;
+  --color-bg-tertiary: #21262d;
+  --color-bg-hover: #30363d;
+  --color-border: #30363d;
+  --color-text-primary: #e6edf3;
+  --color-text-secondary: #8b949e;
+  --color-text-muted: #6e7681;
+  --color-accent: #58a6ff;
+  --color-accent-green: #3fb950;
+  --color-accent-yellow: #d29922;
+  --color-accent-red: #f85149;
+  --color-accent-purple: #a371f7;
+  --color-destructive: #f85149;
+
+  /* Sidebar Colors */
+  --color-sidebar: #161b22;
+  --color-sidebar-foreground: #e6edf3;
+  --color-sidebar-border: #21262d;
+  --color-sidebar-accent: #21262d;
+  --color-sidebar-accent-foreground: #e6edf3;
+  --color-sidebar-ring: #58a6ff;
+
+  /* Radii */
+  --radius-sm: 6px;
+  --radius-md: 8px;
+  --radius-lg: 12px;
+
+  /* Shadows */
+  --shadow-lg: 0 8px 24px rgba(0, 0, 0, 0.4);
+
+  /* Transitions */
+  --transition-fast: 0.15s ease;
+  --transition-normal: 0.2s ease;
+}
+
+/* Base styles */
+html, body, #root {
+  height: 100%;
+  overflow: hidden;
+}
+
+body {
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Helvetica, Arial, sans-serif;
+  font-size: 14px;
+  line-height: 1.5;
+  color: var(--color-text-primary);
+  background: var(--color-bg-primary);
+  -webkit-font-smoothing: antialiased;
+}
+
+/* Dark mode scrollbars */
+* {
+  scrollbar-width: thin;
+  scrollbar-color: var(--color-bg-hover) transparent;
+}
+
+*::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+
+*::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+*::-webkit-scrollbar-thumb {
+  background: var(--color-bg-hover);
+  border-radius: 3px;
+}
+
+/* ================================================
+   MOBILE SIDEBAR - Push content instead of shrink
+   ================================================ */
+@keyframes contentSlideOut {
+  0% { transform: translateX(0); }
+  100% { transform: translateX(18rem); }
+}
+
+@keyframes contentSlideIn {
+  0% { transform: translateX(18rem); }
+  100% { transform: translateX(0); }
+}
+
+@keyframes sidebarSlideIn {
+  0% { transform: translateX(-100%); }
+  100% { transform: translateX(0); }
+}
+
+@keyframes sidebarSlideOut {
+  0% { transform: translateX(0); }
+  100% { transform: translateX(-100%); }
+}
+
+/* Desktop sidebar animations */
+@keyframes desktopSidebarExpand {
+  0% { width: 3rem; }
+  100% { width: 16rem; }
+}
+
+@keyframes desktopSidebarCollapse {
+  0% { width: 16rem; }
+  100% { width: 3rem; }
+}
+
+@keyframes desktopGapExpand {
+  0% { width: 3rem; }
+  100% { width: 16rem; }
+}
+
+@keyframes desktopGapCollapse {
+  0% { width: 16rem; }
+  100% { width: 3rem; }
+}
+
+/* Desktop sidebar animations */
+@media (min-width: 768px) {
+  /* Override default transitions with animations */
+  [data-slot="sidebar"]:not([data-mobile="true"]) [data-slot="sidebar-gap"] {
+    transition: none !important;
+  }
+
+  [data-slot="sidebar"]:not([data-mobile="true"]) [data-slot="sidebar-container"] {
+    transition: none !important;
+  }
+
+  /* Expanded state */
+  [data-slot="sidebar"][data-state="expanded"]:not([data-mobile="true"]) [data-slot="sidebar-gap"] {
+    animation: desktopGapExpand 320ms cubic-bezier(0.175, 0.885, 0.32, 1.1) forwards;
+  }
+
+  [data-slot="sidebar"][data-state="expanded"]:not([data-mobile="true"]) [data-slot="sidebar-container"] {
+    animation: desktopSidebarExpand 320ms cubic-bezier(0.175, 0.885, 0.32, 1.1) forwards;
+  }
+
+  /* Collapsed state */
+  [data-slot="sidebar"][data-state="collapsed"]:not([data-mobile="true"]) [data-slot="sidebar-gap"] {
+    animation: desktopGapCollapse 320ms cubic-bezier(0.6, -0.1, 0.735, 0.045) forwards;
+  }
+
+  [data-slot="sidebar"][data-state="collapsed"]:not([data-mobile="true"]) [data-slot="sidebar-container"] {
+    animation: desktopSidebarCollapse 320ms cubic-bezier(0.6, -0.1, 0.735, 0.045) forwards;
+  }
+}
+
+@media (max-width: 767px) {
+  /* Make the wrapper not shrink the content */
+  [data-slot="sidebar-wrapper"] {
+    overflow-x: hidden;
+  }
+
+  /* Hide the gap element that normally shrinks content */
+  [data-slot="sidebar-gap"] {
+    display: none !important;
+  }
+
+  /* Make inset maintain full width */
+  [data-slot="sidebar-inset"] {
+    min-width: 100vw;
+    transform: translateX(0);
+  }
+
+  /* Animate content when mobile sidebar opens */
+  [data-slot="sidebar-wrapper"][data-mobile-open="true"] [data-slot="sidebar-inset"] {
+    animation: contentSlideOut 320ms cubic-bezier(0.175, 0.885, 0.32, 1.1) forwards;
+  }
+
+  /* Animate content when mobile sidebar closes */
+  [data-slot="sidebar-wrapper"][data-mobile-open="false"] [data-slot="sidebar-inset"] {
+    animation: contentSlideIn 320ms cubic-bezier(0.6, -0.1, 0.735, 0.045) forwards;
+  }
+
+  /* Override sidebar transitions with animations */
+  [data-mobile="true"] [data-slot="sidebar-container"] {
+    transition: none !important;
+    left: 0 !important;
+    transform: translateX(-100%);
+  }
+
+  [data-mobile="true"][data-state="expanded"] [data-slot="sidebar-container"] {
+    animation: sidebarSlideIn 320ms cubic-bezier(0.175, 0.885, 0.32, 1.1) forwards;
+  }
+
+  [data-mobile="true"][data-state="collapsed"] [data-slot="sidebar-container"] {
+    animation: sidebarSlideOut 320ms cubic-bezier(0.6, -0.1, 0.735, 0.045) forwards;
+  }
+}
+
+*::-webkit-scrollbar-thumb:hover {
+  background: var(--color-text-muted);
+}
+
+/* Animations */
+@keyframes spin {
+  to { transform: rotate(360deg); }
+}
+
+@keyframes border-travel {
+  to { --border-angle: 360deg; }
+}
+
+@keyframes fade-in {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+@keyframes fade-in-up {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes slide-in-right {
+  from {
+    opacity: 0;
+    transform: translateX(100%);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}
+
+@keyframes slide-in-left {
+  from {
+    opacity: 0;
+    transform: translateX(-100%);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}
+
+@keyframes slide-in-up {
+  from {
+    opacity: 0;
+    transform: translateY(100%);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes pulse {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.5; }
+}
+
+@keyframes bounce {
+  0%, 100% {
+    transform: translateY(0);
+  }
+  50% {
+    transform: translateY(-5px);
+  }
+}
+
+@property --border-angle {
+  syntax: "<angle>";
+  initial-value: 0deg;
+  inherits: false;
+}
+
+/* Animation utility classes */
+.animate-fade-in {
+  animation: fade-in var(--transition-normal) ease-out;
+}
+
+.animate-fade-in-up {
+  animation: fade-in-up var(--transition-normal) ease-out;
+}
+
+.animate-slide-in-right {
+  animation: slide-in-right 0.3s ease-out;
+}
+
+.animate-slide-in-left {
+  animation: slide-in-left 0.3s ease-out;
+}
+
+.animate-slide-in-up {
+  animation: slide-in-up 0.3s ease-out;
+}
+
+.animate-pulse {
+  animation: pulse 2s ease-in-out infinite;
+}
+
+.animate-spin {
+  animation: spin 1s linear infinite;
+}
+
+/* Transition utility classes */
+.transition-colors {
+  transition: color var(--transition-fast), background-color var(--transition-fast), border-color var(--transition-fast);
+}
+
+.transition-transform {
+  transition: transform var(--transition-fast);
+}
+
+.transition-opacity {
+  transition: opacity var(--transition-fast);
+}
+
+.transition-all {
+  transition: all var(--transition-normal);
+}
+
+/* Interactive element defaults */
+button, a, [role="button"] {
+  cursor: pointer;
+  transition: background-color var(--transition-fast), color var(--transition-fast), border-color var(--transition-fast), opacity var(--transition-fast), transform var(--transition-fast);
+}
+
+/* Card hover effects */
+.card-hover {
+  transition: background-color var(--transition-fast), transform var(--transition-fast), box-shadow var(--transition-fast);
+}
+
+.card-hover:hover {
+  background-color: var(--color-bg-hover);
+}
+
+/* Focus styles */
+:focus-visible {
+  outline: 2px solid var(--color-accent);
+  outline-offset: 2px;
+}
+
+/* Loading skeleton animation */
+.skeleton {
+  background: linear-gradient(
+    90deg,
+    var(--color-bg-tertiary) 25%,
+    var(--color-bg-hover) 50%,
+    var(--color-bg-tertiary) 75%
+  );
+  background-size: 200% 100%;
+  animation: skeleton-loading 1.5s ease-in-out infinite;
+}
+
+@keyframes skeleton-loading {
+  0% { background-position: 200% 0; }
+  100% { background-position: -200% 0; }
+}
+
+/* ================================================
+   POTATO CANNON BRANDING
+   Retro-industrial artillery aesthetic
+   ================================================ */
+
+.brand-logo__wrapper {
+  position: relative;
+  flex: 1;
+}
+
+.brand-logo {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  padding: 16px 18px 26px;
+  background: linear-gradient(
+    135deg,
+    rgba(210, 153, 34, 0.08) 0%,
+    rgba(63, 185, 80, 0.04) 100%
+  );
+
+  position: relative;
+  overflow: hidden;
+  cursor: pointer;
+}
+
+/* Subtle scanning line effect - only on hover */
+.brand-logo::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: -100%;
+  width: 100%;
+  height: 100%;
+  background: linear-gradient(
+    90deg,
+    transparent 0%,
+    rgba(210, 153, 34, 0.15) 50%,
+    transparent 100%
+  );
+  transition: left 0.6s ease-out;
+}
+
+.brand-logo:hover::before {
+  left: 100%;
+}
+
+/* Bottom fade into sidebar background */
+.brand-logo::after {
+  content: '';
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  height: 24px;
+  background: linear-gradient(
+    to bottom,
+    transparent 0%,
+    var(--color-sidebar) 100%
+  );
+  pointer-events: none;
+  z-index: 1;
+}
+
+.brand-logo--collapsed {
+  padding: 8px;
+  background: linear-gradient(
+    135deg,
+    rgba(210, 153, 34, 0.12) 0%,
+    rgba(63, 185, 80, 0.06) 100%
+  );
+}
+
+/* Hero variant - large centered logo with radial fade */
+.brand-logo--hero {
+  padding: 48px 56px;
+  gap: 20px;
+  justify-content: center;
+  overflow: visible;
+  mask-image: radial-gradient(
+    ellipse 70% 70% at center,
+    black 30%,
+    transparent 70%
+  );
+  -webkit-mask-image: radial-gradient(
+    ellipse 70% 70% at center,
+    black 30%,
+    transparent 70%
+  );
+}
+
+.brand-logo--hero::after {
+  display: none;
+}
+
+.brand-logo--hero .brand-logo__potato {
+  width: 72px;
+  height: 72px;
+}
+
+.brand-logo--hero .brand-logo__title {
+  font-size: 24px;
+  letter-spacing: 4px;
+}
+
+.brand-logo--hero .brand-logo__subtitle {
+  font-size: 18px;
+  letter-spacing: 6px;
+}
+
+/* Potato SVG container */
+.brand-logo__potato {
+  flex-shrink: 0;
+  width: 44px;
+  height: 44px;
+  position: relative;
+}
+
+.brand-logo--collapsed .brand-logo__potato {
+  width: 32px;
+  height: 32px;
+}
+
+.brand-logo__potato-svg {
+  width: 100%;
+  height: 100%;
+  filter: drop-shadow(0 2px 4px rgba(0, 0, 0, 0.3));
+}
+
+/* Potato body - warm earthy gradient */
+.brand-logo__potato-body {
+  fill: url(#potato-gradient);
+  stroke: #8b6914;
+  stroke-width: 0.8;
+}
+
+/* Add gradient definition via CSS (we'll inject this) */
+.brand-logo__potato-svg {
+  --potato-light: #d4a853;
+  --potato-dark: #9c7a2e;
+}
+
+.brand-logo__potato-body {
+  fill: #c9a043;
+  transition: transform 0.3s ease;
+}
+
+.brand-logo:hover .brand-logo__potato-body {
+  transform: scale(1.05);
+}
+
+/* Potato spots */
+.brand-logo__potato-spot {
+  fill: #8b6914;
+  opacity: 0.6;
+}
+
+/* Motion lines - visible by default, animated on hover */
+.brand-logo__motion-line {
+  stroke: var(--color-accent-yellow);
+  stroke-width: 1.5;
+  stroke-linecap: round;
+  opacity: 0.5;
+}
+
+.brand-logo:hover .brand-logo__motion-line {
+  animation: motion-flash 2s ease-in-out infinite;
+}
+
+.brand-logo:hover .brand-logo__motion-line:nth-child(5) {
+  animation-delay: 0s;
+}
+
+.brand-logo:hover .brand-logo__motion-line:nth-child(6) {
+  animation-delay: 0.15s;
+}
+
+.brand-logo:hover .brand-logo__motion-line:nth-child(7) {
+  animation-delay: 0.3s;
+}
+
+@keyframes motion-flash {
+  0%, 60%, 100% {
+    opacity: 0;
+    transform: translateX(0);
+  }
+  10%, 30% {
+    opacity: 0.8;
+    transform: translateX(-2px);
+  }
+}
+
+/* Hover launches the potato */
+.brand-logo:hover .brand-logo__potato-svg {
+  animation: potato-launch 0.6s ease-out;
+}
+
+@keyframes potato-launch {
+  0% { transform: translateX(0) rotate(0deg); }
+  30% { transform: translateX(4px) rotate(-5deg); }
+  60% { transform: translateX(-2px) rotate(3deg); }
+  100% { transform: translateX(0) rotate(0deg); }
+}
+
+/* Text treatment - stacked military stencil style */
+.brand-logo__text {
+  display: flex;
+  flex-direction: column;
+  line-height: 1;
+  gap: 2px;
+}
+
+.brand-logo__title {
+  font-family: 'Courier New', Courier, monospace;
+  font-size: 16px;
+  font-weight: 700;
+  letter-spacing: 3px;
+  color: var(--color-accent-yellow);
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.4);
+  text-transform: uppercase;
+}
+
+.brand-logo__subtitle {
+  font-family: 'Courier New', Courier, monospace;
+  font-size: 13px;
+  font-weight: 600;
+  letter-spacing: 5px;
+  color: var(--color-text-secondary);
+  text-transform: uppercase;
+  position: relative;
+  padding-left: 2px;
+}
+
+/* Decorative underline */
+.brand-logo__subtitle::after {
+  content: '';
+  position: absolute;
+  bottom: -4px;
+  left: 0;
+  width: 100%;
+  height: 1px;
+  background: linear-gradient(
+    90deg,
+    var(--color-accent-yellow) 0%,
+    var(--color-accent-green) 50%,
+    transparent 100%
+  );
+  opacity: 0.5;
+}
+
+/* Edition label - angled badge */
+.brand-logo__edition {
+  position: absolute;
+  bottom: 16px;
+  right: 12px;
+  font-family: 'Courier New', Courier, monospace;
+  font-size: 8px;
+  font-weight: 600;
+  letter-spacing: 0.5px;
+  color: var(--color-accent-yellow);
+  background: rgba(210, 153, 34, 0.15);
+  padding: 2px 8px;
+  border-radius: 2px;
+  transform: rotate(-12deg);
+  text-transform: uppercase;
+  white-space: nowrap;
+  border: 1px solid rgba(210, 153, 34, 0.3);
+  z-index: 2;
+}
+
+/* ================================================
+   STANDARD TIER VARIANT - Blue color scheme
+   ================================================ */
+
+.brand-logo--standard {
+  background: linear-gradient(
+    135deg,
+    rgba(88, 166, 255, 0.08) 0%,
+    rgba(163, 113, 247, 0.04) 100%
+  );
+}
+
+.brand-logo--standard::before {
+  background: linear-gradient(
+    90deg,
+    transparent 0%,
+    rgba(88, 166, 255, 0.15) 50%,
+    transparent 100%
+  );
+}
+
+.brand-logo--standard .brand-logo__potato-body {
+  fill: #7eb8e8;
+  stroke: #4a8bc7;
+}
+
+.brand-logo--standard .brand-logo__potato-spot {
+  fill: #4a8bc7;
+}
+
+.brand-logo--standard .brand-logo__motion-line {
+  stroke: var(--color-accent);
+}
+
+.brand-logo--standard .brand-logo__title {
+  color: var(--color-accent);
+}
+
+.brand-logo--standard .brand-logo__subtitle::after {
+  background: linear-gradient(
+    90deg,
+    var(--color-accent) 0%,
+    var(--color-accent-purple) 50%,
+    transparent 100%
+  );
+}
+
+/* Reduced motion */
+@media (prefers-reduced-motion: reduce) {
+  .brand-logo::before {
+    display: none;
+  }
+
+  .brand-logo__motion-line {
+    animation: none;
+    opacity: 0.4;
+  }
+
+  .brand-logo:hover .brand-logo__potato-svg {
+    animation: none;
+  }
+}
+
+/* ================================================
+   END BRANDING
+   ================================================ */
+
+/* Processing ticket card border animation */
+.ticket-card-processing {
+  position: relative;
+  z-index: 0;
+  background: transparent !important;
+  border: none !important;
+}
+
+.ticket-card-processing::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  border-radius: var(--radius-sm);
+  border: 2px solid transparent;
+  background:
+    linear-gradient(var(--color-bg-tertiary), var(--color-bg-tertiary)) padding-box,
+    conic-gradient(
+      from var(--border-angle),
+      transparent 0deg,
+      transparent 250deg,
+      var(--color-accent) 280deg,
+      var(--color-accent-purple) 340deg,
+      transparent 360deg
+    ) border-box;
+  z-index: -1;
+  animation: border-travel 4s linear infinite;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .ticket-card-processing::before {
+    animation: none;
+    background:
+      linear-gradient(var(--color-bg-tertiary), var(--color-bg-tertiary)) padding-box,
+      linear-gradient(var(--color-accent), var(--color-accent)) border-box;
+  }
+}
+
+/* Thinking indicator shimmer border */
+.thinking-shimmer {
+  position: relative;
+  z-index: 0;
+}
+
+.thinking-shimmer::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  border-radius: var(--radius-lg);
+  border: 2px solid transparent;
+  background:
+    linear-gradient(var(--color-bg-tertiary), var(--color-bg-tertiary)) padding-box,
+    conic-gradient(
+      from var(--border-angle),
+      transparent 0deg,
+      transparent 250deg,
+      var(--color-accent) 280deg,
+      var(--color-accent-purple) 340deg,
+      transparent 360deg
+    ) border-box;
+  z-index: -1;
+  animation: border-travel 3s linear infinite;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .thinking-shimmer::before {
+    animation: none;
+    background:
+      linear-gradient(var(--color-bg-tertiary), var(--color-bg-tertiary)) padding-box,
+      linear-gradient(var(--color-accent), var(--color-accent)) border-box;
+  }
+}
+
+/* Sidebar-specific shimmer variant - inherits button border radius */
+.thinking-shimmer[data-slot="sidebar-menu-item"]::before {
+  border-radius: var(--radius-md);
+}
+
+/* ================================================
+   ELECTRON TITLE BAR
+   Handles macOS traffic lights and window dragging
+   ================================================ */
+
+/* Traffic light safe zone dimensions */
+:root {
+  --electron-traffic-light-width: 78px;
+  --electron-header-height: 40px;
+}
+
+/* Draggable title bar - the header itself handles dragging now */
+.electron-title-bar {
+  display: none; /* Header handles drag region */
+}
+
+/* Header: fixed at top, spans full window width, independent of sidebar */
+.electron-app [data-slot="sidebar-inset"] > header.electron-drag-region {
+  position: fixed !important;
+  top: 0 !important;
+  left: 0 !important;
+  right: 0 !important;
+  z-index: 1000;
+  height: var(--electron-header-height);
+  padding-left: var(--electron-traffic-light-width) !important;
+  padding-right: 1rem !important;
+  gap: 0.75rem !important; /* Tighter spacing between collapse icon and tabs */
+  border-bottom: 1px solid var(--color-border);
+}
+
+/* Add spacing to the left of sidebar trigger in electron */
+.electron-app [data-slot="sidebar-inset"] > header.electron-drag-region [data-slot="sidebar-trigger"] {
+  margin-left: 0.5rem !important;
+}
+
+/* Sidebar container: starts below the fixed header */
+.electron-app [data-slot="sidebar-container"] {
+  top: var(--electron-header-height) !important;
+  height: calc(100svh - var(--electron-header-height)) !important;
+}
+
+/* Main content: also starts below the fixed header */
+.electron-app [data-slot="sidebar-inset"] {
+  padding-top: var(--electron-header-height);
+}
+
+/* Logo area: no longer needs extra top padding for traffic lights (header handles that) */
+.electron-app .brand-logo {
+  padding-top: 16px !important;
+  padding-left: 18px !important;
+}
+
+/* Collapsed sidebar logo */
+.electron-app [data-state="collapsed"] .brand-logo {
+  padding-top: 8px !important;
+  padding-left: 8px !important;
+}
+
+/* Make the header area draggable for window movement */
+.electron-app .electron-drag-region {
+  -webkit-app-region: drag;
+}
+
+/* Buttons and interactive elements should not be draggable */
+.electron-app button,
+.electron-app a,
+.electron-app [role="button"],
+.electron-app input,
+.electron-app select,
+.electron-app [data-slot="sidebar-trigger"] {
+  -webkit-app-region: no-drag;
+}
+
+/* ================================================
+   BRAINSTORM MASTER-DETAIL LAYOUT
+   Container query responsive pattern
+   ================================================ */
+
+.brainstorm-container {
+  container-type: inline-size;
+  container-name: brainstorm;
+  height: 100%;
+}
+
+.brainstorm-layout {
+  display: flex;
+  height: 100%;
+  padding: 16px;
+  gap: 16px;
+}
+
+.brainstorm-master {
+  width: 320px;
+  flex-shrink: 0;
+  display: flex;
+  flex-direction: column;
+  background: var(--color-bg-secondary);
+  border-radius: var(--radius-lg);
+  overflow: hidden;
+}
+
+.brainstorm-detail {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  min-height: 0;
+  background: var(--color-bg-secondary);
+  border-radius: var(--radius-lg);
+  overflow: hidden;
+}
+
+/* Hide back button on desktop when both panels are visible */
+.brainstorm-back-button {
+  display: none;
+}
+
+/* Mobile layout - container query at 768px */
+@container brainstorm (max-width: 768px) {
+  .brainstorm-layout {
+    position: relative;
+    padding: 12px;
+    gap: 0;
+  }
+
+  .brainstorm-master {
+    position: absolute;
+    inset: 12px;
+    width: calc(100% - 24px);
+    z-index: 10;
+    transition: transform 300ms ease-out, visibility 0s 0s;
+  }
+
+  .brainstorm-master[data-hidden="true"] {
+    transform: translateX(calc(-100% - 24px));
+    visibility: hidden;
+    transition: transform 300ms ease-out, visibility 0s 300ms;
+  }
+
+  .brainstorm-detail {
+    position: absolute;
+    inset: 12px;
+    transform: translateX(calc(100% + 24px));
+    visibility: hidden;
+    z-index: 20;
+    background: var(--color-bg-secondary);
+    transition: transform 300ms ease-out, visibility 0s 300ms;
+  }
+
+  .brainstorm-detail[data-active="true"] {
+    transform: translateX(0);
+    visibility: visible;
+    transition: transform 300ms ease-out, visibility 0s 0s;
+  }
+
+  /* Show back button on mobile/tablet when detail is the only visible panel */
+  .brainstorm-back-button {
+    display: inline-flex;
+  }
+}
+
+/* ================================================
+   BOARD + TASK DETAIL LAYOUT
+   Container query responsive pattern
+   ================================================ */
+
+.board-container {
+  container-type: inline-size;
+  container-name: board;
+  position: relative;
+}
+
+.ticket-detail-panel {
+  height: 100%;
+  border-left: 1px solid var(--color-border);
+  background: var(--color-sidebar);
+  flex-shrink: 0;
+  overflow: hidden;
+  transition: width 200ms ease-in-out;
+}
+
+.ticket-detail-panel[data-open="true"] {
+  width: 480px;
+}
+
+.ticket-detail-panel[data-open="false"] {
+  width: 0;
+}
+
+/* Mobile layout - media query fallback */
+@media (max-width: 640px) {
+  /* Hide board content when ticket detail is open */
+  .board-container[data-detail-open="true"] > main {
+    visibility: hidden;
+  }
+
+  .ticket-detail-panel {
+    position: absolute;
+    top: 12px;
+    left: 12px;
+    right: 12px;
+    bottom: calc(72px + env(safe-area-inset-bottom, 0px)); /* bottom bar + margin + safe area */
+    height: auto;
+    width: auto !important;
+    border: none;
+    border-radius: var(--radius-lg);
+    background: var(--color-bg-secondary);
+    z-index: 30;
+    transform: translateX(calc(100% + 24px));
+    visibility: hidden;
+    transition: transform 300ms ease-out, visibility 0s 300ms;
+  }
+
+  .ticket-detail-panel[data-open="true"] {
+    transform: translateX(0);
+    visibility: visible;
+    transition: transform 300ms ease-out, visibility 0s 0s;
+  }
+}
+
+/* ================================================
+   SWIMLANE FLIP CARD ANIMATION
+   3D card flip for swimlane configuration
+   ================================================ */
+
+/* Flip card container - provides 3D context */
+.swimlane-flip-container {
+  perspective: 1000px;
+  position: relative;
+}
+
+/* Inner wrapper - this is what rotates */
+.swimlane-flip-inner {
+  position: relative;
+  width: 100%;
+  height: 100%;
+  transition: transform 0.5s ease;
+  transform-style: preserve-3d;
+}
+
+.swimlane-flip-inner.flipped {
+  transform: rotateY(180deg);
+}
+
+/* Front and back faces */
+.swimlane-front,
+.swimlane-back {
+  position: absolute;
+  width: 100%;
+  height: 100%;
+  backface-visibility: hidden;
+  -webkit-backface-visibility: hidden; /* Safari */
+}
+
+.swimlane-front {
+  /* Front is default orientation */
+}
+
+.swimlane-back {
+  /* Back starts rotated so it's hidden, shows when parent flips */
+  transform: rotateY(180deg);
+  /* Disable pointer events when hidden */
+  pointer-events: none;
+}
+
+/* When flipped, swap pointer-events so only visible face is interactive */
+.swimlane-flip-inner.flipped .swimlane-front {
+  pointer-events: none;
+}
+
+.swimlane-flip-inner.flipped .swimlane-back {
+  pointer-events: auto;
+}
+
+/* Ticket fade during flip */
+.swimlane-tickets-fade {
+  transition: opacity 0.2s ease;
+}
+
+.swimlane-tickets-fade.fading {
+  opacity: 0;
+}
+
+/* Reduced motion preference */
+@media (prefers-reduced-motion: reduce) {
+  .swimlane-flip-inner {
+    transition: none;
+  }
+
+  .swimlane-tickets-fade {
+    transition: none;
+  }
+}

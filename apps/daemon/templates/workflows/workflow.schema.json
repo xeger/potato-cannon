@@ -1,0 +1,206 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://potato-cannon/schemas/workflow.schema.json",
+  "title": "Potato Cannon Workflow",
+  "description": "Schema for defining product development workflows with phases and workers",
+  "type": "object",
+  "required": ["name", "description", "version", "phases"],
+  "properties": {
+    "name": {
+      "type": "string",
+      "description": "Unique identifier for the workflow"
+    },
+    "description": {
+      "type": "string",
+      "description": "Human-readable description of the workflow's purpose"
+    },
+    "version": {
+      "type": "string",
+      "description": "Semantic version (e.g., '1.0.0')",
+      "pattern": "^\\d+\\.\\d+\\.\\d+$"
+    },
+    "phases": {
+      "type": "array",
+      "description": "Ordered list of workflow phases",
+      "items": { "$ref": "#/$defs/phase" },
+      "minItems": 1
+    }
+  },
+  "$defs": {
+    "phase": {
+      "type": "object",
+      "description": "A single phase in the workflow",
+      "required": ["id", "name", "description", "workers", "transitions"],
+      "properties": {
+        "id": {
+          "type": "string",
+          "description": "Unique identifier for the phase"
+        },
+        "name": {
+          "type": "string",
+          "description": "Display name for the phase"
+        },
+        "description": {
+          "type": "string",
+          "description": "What this phase accomplishes"
+        },
+        "workers": {
+          "type": "array",
+          "description": "Workers to execute in this phase (sequential order)",
+          "items": { "$ref": "#/$defs/worker" }
+        },
+        "transitions": {
+          "$ref": "#/$defs/transitions"
+        },
+        "requiresWorktree": {
+          "type": "boolean",
+          "description": "Whether this phase requires a git worktree",
+          "default": false
+        }
+      }
+    },
+    "worker": {
+      "oneOf": [
+        { "$ref": "#/$defs/agentWorker" },
+        { "$ref": "#/$defs/ralphLoopWorker" },
+        { "$ref": "#/$defs/taskLoopWorker" }
+      ]
+    },
+    "agentWorker": {
+      "type": "object",
+      "description": "An agent that performs work",
+      "required": ["id", "type", "source"],
+      "properties": {
+        "id": {
+          "type": "string",
+          "description": "Unique identifier for this worker"
+        },
+        "type": {
+          "const": "agent"
+        },
+        "source": {
+          "type": "string",
+          "description": "Path to agent definition file (e.g., 'agents/refinement.md')"
+        },
+        "description": {
+          "type": "string",
+          "description": "What this agent does"
+        },
+        "disallowTools": {
+          "type": "array",
+          "description": "Tools to disallow for this agent (e.g., ['TaskCreate', 'TaskUpdate'])",
+          "items": {
+            "type": "string"
+          }
+        },
+        "model": {
+          "oneOf": [
+            {
+              "type": "string",
+              "description": "Model shortcut (haiku, sonnet, opus) or explicit model ID (e.g., claude-sonnet-4-20250514)"
+            },
+            {
+              "type": "object",
+              "description": "Model specification with provider",
+              "properties": {
+                "id": {
+                  "type": "string",
+                  "description": "Model ID"
+                },
+                "provider": {
+                  "type": "string",
+                  "description": "Provider name (default: anthropic)"
+                }
+              },
+              "required": ["id"],
+              "additionalProperties": false
+            }
+          ],
+          "description": "Optional model to use for this agent. If not specified, uses Claude Code's default."
+        }
+      },
+      "additionalProperties": false
+    },
+    "ralphLoopWorker": {
+      "type": "object",
+      "description": "Adversarial loop that iterates until consensus",
+      "required": ["id", "type", "workers", "maxAttempts"],
+      "properties": {
+        "id": {
+          "type": "string",
+          "description": "Unique identifier for this loop"
+        },
+        "type": {
+          "const": "ralphLoop"
+        },
+        "description": {
+          "type": "string",
+          "description": "What this loop accomplishes"
+        },
+        "maxAttempts": {
+          "type": "integer",
+          "description": "Maximum iterations before failure",
+          "minimum": 1
+        },
+        "workers": {
+          "type": "array",
+          "description": "Workers to run each iteration",
+          "items": { "$ref": "#/$defs/worker" },
+          "minItems": 1
+        }
+      },
+      "additionalProperties": false
+    },
+    "taskLoopWorker": {
+      "type": "object",
+      "description": "Loop that iterates over tasks created via API",
+      "required": ["id", "type", "workers", "maxAttempts"],
+      "properties": {
+        "id": {
+          "type": "string",
+          "description": "Unique identifier for this loop"
+        },
+        "type": {
+          "const": "taskLoop"
+        },
+        "description": {
+          "type": "string",
+          "description": "What this loop accomplishes"
+        },
+        "maxAttempts": {
+          "type": "integer",
+          "description": "Maximum attempts per task before failure",
+          "minimum": 1
+        },
+        "workers": {
+          "type": "array",
+          "description": "Workers to run for each task (cannot contain taskLoop)",
+          "items": {
+            "oneOf": [
+              { "$ref": "#/$defs/agentWorker" },
+              { "$ref": "#/$defs/ralphLoopWorker" }
+            ]
+          },
+          "minItems": 1
+        }
+      },
+      "additionalProperties": false
+    },
+    "transitions": {
+      "type": "object",
+      "description": "Configuration for transitioning to the next phase",
+      "required": ["next"],
+      "properties": {
+        "next": {
+          "type": ["string", "null"],
+          "description": "ID of the next phase, or null for terminal phase"
+        },
+        "manual": {
+          "type": "boolean",
+          "description": "If true, requires human approval to proceed",
+          "default": false
+        }
+      }
+    }
+  }
+}

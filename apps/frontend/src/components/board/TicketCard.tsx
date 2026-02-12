@@ -1,0 +1,155 @@
+import { useState } from 'react'
+import { useDraggable } from '@dnd-kit/core'
+import { CSS } from '@dnd-kit/utilities'
+import { Archive, Image, Clock } from 'lucide-react'
+import { toast } from 'sonner'
+import { cn, timeAgo } from '@/lib/utils'
+import { useAppStore } from '@/stores/appStore'
+import { useArchiveTicket } from '@/hooks/queries'
+import { ListItemCard } from '@/components/ui/list-item-card'
+import { IconButton } from '@/components/ui/icon-button'
+import { ArchiveConfirmDialog, shouldShowArchiveWarning } from '@/components/ticket-detail/ArchiveConfirmDialog'
+import type { Ticket } from '@potato-cannon/shared'
+
+interface TicketCardProps {
+  ticket: Ticket
+  projectId: string
+  swimlaneColor?: string
+}
+
+export function TicketCard({ ticket, projectId, swimlaneColor }: TicketCardProps) {
+  const openTicketSheet = useAppStore((s) => s.openTicketSheet)
+  const isProcessing = useAppStore((s) => s.isTicketProcessing(projectId, ticket.id))
+  const isArchiving = useAppStore((s) => s.isTicketArchiving(projectId, ticket.id))
+  const [archiveConfirmOpen, setArchiveConfirmOpen] = useState(false)
+  const archiveTicket = useArchiveTicket()
+
+  const { attributes, listeners, setNodeRef, transform, isDragging } = useDraggable({
+    id: ticket.id,
+    disabled: isArchiving,
+    data: {
+      ticket,
+      projectId
+    }
+  })
+
+  const style = transform
+    ? {
+        transform: CSS.Translate.toString(transform),
+        zIndex: isDragging ? 50 : undefined
+      }
+    : undefined
+
+  const handleClick = () => {
+    if (isArchiving) return
+    openTicketSheet(projectId, ticket.id)
+  }
+
+  const handleArchiveClick = (e: React.MouseEvent) => {
+    e.stopPropagation() // Don't trigger card click
+    if (shouldShowArchiveWarning()) {
+      setArchiveConfirmOpen(true)
+    } else {
+      handleArchive()
+    }
+  }
+
+  const handleArchive = () => {
+    archiveTicket.mutate(
+      { projectId, ticketId: ticket.id },
+      {
+        onSuccess: (result) => {
+          setArchiveConfirmOpen(false)
+          if (result.cleanup.errors.length > 0) {
+            toast.warning('Ticket archived', {
+              description: `Could not clean up: ${result.cleanup.errors.join(', ')}`
+            })
+          } else {
+            toast.success('Ticket archived')
+          }
+        },
+        onError: (error) => {
+          toast.error('Failed to archive ticket', {
+            description: (error as Error).message
+          })
+        }
+      }
+    )
+  }
+
+  const imageCount = ticket.images?.length ?? 0
+
+  return (
+    <ListItemCard
+      asChild
+      isActive={isDragging}
+      tintColor={swimlaneColor}
+    >
+      <div
+        ref={setNodeRef}
+        style={style}
+        {...listeners}
+        {...attributes}
+        onClick={handleClick}
+        className={cn(
+          'relative group',
+          isProcessing && 'ticket-card-processing',
+          isArchiving && 'opacity-50 pointer-events-none cursor-not-allowed'
+        )}
+      >
+      {/* Archive button - only for Done phase */}
+      {ticket.phase === 'Done' && !ticket.archived && (
+        <div className="absolute top-0 right-0 opacity-0 group-hover:opacity-100 transition-opacity z-10">
+          <IconButton
+            tooltip="Archive"
+            onClick={handleArchiveClick}
+            disabled={archiveTicket.isPending}
+          >
+            <Archive className="h-4 w-4" />
+          </IconButton>
+        </div>
+      )}
+
+      {/* Ticket ID */}
+      <div className="text-xs text-text-muted font-mono mb-1">{ticket.id}</div>
+
+      {/* Ticket Title */}
+      <div className="text-text-primary text-sm font-medium line-clamp-2 mb-2">
+        {ticket.title}
+      </div>
+
+      {/* Meta row */}
+      <div className="flex items-center justify-between text-xs text-text-muted">
+        <div className="flex items-center gap-2">
+          {imageCount > 0 && (
+            <span className="flex items-center gap-1">
+              <Image className="h-3 w-3" />
+              {imageCount}
+            </span>
+          )}
+        </div>
+        <span className="flex items-center gap-1">
+          <Clock className="h-3 w-3" />
+          {timeAgo(ticket.updatedAt)}
+        </span>
+      </div>
+
+      {/* Processing indicator */}
+      {isProcessing && (
+        <div className="mt-2 text-xs text-accent flex items-center gap-1">
+          <span className="inline-block w-2 h-2 bg-accent rounded-full animate-pulse" />
+          Processing...
+        </div>
+      )}
+
+      <ArchiveConfirmDialog
+        open={archiveConfirmOpen}
+        onOpenChange={setArchiveConfirmOpen}
+        onConfirm={handleArchive}
+        isPending={archiveTicket.isPending}
+        ticketId={ticket.id}
+      />
+      </div>
+    </ListItemCard>
+  )
+}

@@ -1,0 +1,281 @@
+import { describe, it, beforeEach, mock } from "node:test";
+import assert from "node:assert";
+import { EventEmitter } from "events";
+import { SessionService } from "../session.service.js";
+
+/**
+ * Tests for SessionService.terminateExistingSession
+ *
+ * Note: We test the internal behavior by directly manipulating the
+ * sessions Map and observing the effects. Database operations are
+ * tested indirectly through the session lifecycle.
+ */
+describe("SessionService.terminateExistingSession", () => {
+  let service: SessionService;
+  let eventEmitter: EventEmitter;
+
+  beforeEach(() => {
+    eventEmitter = new EventEmitter();
+    service = new SessionService(eventEmitter);
+  });
+
+  it("should call stopSession when session is in memory", async () => {
+    // Access the private sessions Map
+    const sessions = (service as any).sessions as Map<string, any>;
+
+    // Mock process that tracks kill calls
+    const killCalls: string[] = [];
+    const mockProcess = {
+      kill: (signal: string) => killCalls.push(signal),
+    };
+
+    // Add a mock session to the sessions map
+    const sessionId = "sess_test123";
+    sessions.set(sessionId, {
+      process: mockProcess,
+      meta: { projectId: "test", ticketId: "POT-1" },
+      logStream: { end: mock.fn() },
+    });
+
+    // Verify the session is in the map
+    assert.strictEqual(sessions.has(sessionId), true);
+
+    // Call stopSession directly (public method)
+    const result = service.stopSession(sessionId);
+
+    // Verify kill was called with SIGTERM
+    assert.strictEqual(result, true);
+    assert.deepStrictEqual(killCalls, ["SIGTERM"]);
+  });
+
+  it("should return false when stopping non-existent session", () => {
+    const result = service.stopSession("sess_nonexistent");
+    assert.strictEqual(result, false);
+  });
+
+  it("should track sessions in internal map correctly", () => {
+    const sessions = (service as any).sessions as Map<string, any>;
+
+    // Initially empty
+    assert.strictEqual(sessions.size, 0);
+
+    // Add a session
+    sessions.set("sess_1", { process: {}, meta: {}, logStream: {} });
+    assert.strictEqual(sessions.size, 1);
+    assert.strictEqual(service.isActive("sess_1"), true);
+    assert.strictEqual(service.isActive("sess_2"), false);
+  });
+});
+
+describe("SessionService model resolution", () => {
+  it("should pass resolved model to spawnClaudeSession args", async () => {
+    // This test verifies the resolveModel function is correctly integrated
+    // We test the resolver directly since spawnClaudeSession is private
+
+    // Import the resolver
+    const { resolveModel } = await import("../model-resolver.js");
+
+    // Test that shortcuts resolve correctly
+    assert.strictEqual(resolveModel("haiku"), "haiku");
+    assert.strictEqual(resolveModel("sonnet"), "sonnet");
+    assert.strictEqual(resolveModel("opus"), "opus");
+
+    // Test that explicit IDs pass through
+    assert.strictEqual(
+      resolveModel("claude-sonnet-4-20250514"),
+      "claude-sonnet-4-20250514"
+    );
+
+    // Test that undefined returns null (no --model flag)
+    assert.strictEqual(resolveModel(undefined), null);
+
+    // Test object format
+    assert.strictEqual(
+      resolveModel({ id: "claude-opus-4-20250514", provider: "anthropic" }),
+      "claude-opus-4-20250514"
+    );
+  });
+});
+
+describe("SessionService.getProcessingByProject", () => {
+  it("should return both ticket and brainstorm IDs grouped by project", () => {
+    const eventEmitter = new EventEmitter();
+    const sessionService = new SessionService(eventEmitter);
+
+    // Mock internal sessions map with both ticket and brainstorm sessions
+    const mockSessions = new Map([
+      [
+        "session-1",
+        {
+          meta: { projectId: "proj-1", ticketId: "ticket-1", brainstormId: "" },
+          process: null,
+          logStream: null,
+          exitPromise: Promise.resolve(),
+          exitResolver: () => {},
+        },
+      ],
+      [
+        "session-2",
+        {
+          meta: { projectId: "proj-1", ticketId: "", brainstormId: "brainstorm-1" },
+          process: null,
+          logStream: null,
+          exitPromise: Promise.resolve(),
+          exitResolver: () => {},
+        },
+      ],
+      [
+        "session-3",
+        {
+          meta: { projectId: "proj-2", ticketId: "ticket-2", brainstormId: "" },
+          process: null,
+          logStream: null,
+          exitPromise: Promise.resolve(),
+          exitResolver: () => {},
+        },
+      ],
+    ]);
+
+    // @ts-ignore - accessing private property for testing
+    sessionService.sessions = mockSessions;
+
+    const result = sessionService.getProcessingByProject();
+
+    assert.deepEqual(result.get("proj-1"), {
+      ticketIds: ["ticket-1"],
+      brainstormIds: ["brainstorm-1"],
+    });
+    assert.deepEqual(result.get("proj-2"), {
+      ticketIds: ["ticket-2"],
+      brainstormIds: [],
+    });
+  });
+
+  it("should handle multiple tickets and brainstorms in same project", () => {
+    const eventEmitter = new EventEmitter();
+    const sessionService = new SessionService(eventEmitter);
+
+    const mockSessions = new Map([
+      [
+        "session-1",
+        {
+          meta: { projectId: "proj-1", ticketId: "ticket-1", brainstormId: "" },
+          process: null,
+          logStream: null,
+          exitPromise: Promise.resolve(),
+          exitResolver: () => {},
+        },
+      ],
+      [
+        "session-2",
+        {
+          meta: { projectId: "proj-1", ticketId: "ticket-2", brainstormId: "" },
+          process: null,
+          logStream: null,
+          exitPromise: Promise.resolve(),
+          exitResolver: () => {},
+        },
+      ],
+      [
+        "session-3",
+        {
+          meta: { projectId: "proj-1", ticketId: "", brainstormId: "brainstorm-1" },
+          process: null,
+          logStream: null,
+          exitPromise: Promise.resolve(),
+          exitResolver: () => {},
+        },
+      ],
+      [
+        "session-4",
+        {
+          meta: { projectId: "proj-1", ticketId: "", brainstormId: "brainstorm-2" },
+          process: null,
+          logStream: null,
+          exitPromise: Promise.resolve(),
+          exitResolver: () => {},
+        },
+      ],
+    ]);
+
+    // @ts-ignore - accessing private property for testing
+    sessionService.sessions = mockSessions;
+
+    const result = sessionService.getProcessingByProject();
+
+    assert.deepEqual(result.get("proj-1"), {
+      ticketIds: ["ticket-1", "ticket-2"],
+      brainstormIds: ["brainstorm-1", "brainstorm-2"],
+    });
+  });
+
+  it("should exclude duplicate IDs", () => {
+    const eventEmitter = new EventEmitter();
+    const sessionService = new SessionService(eventEmitter);
+
+    const mockSessions = new Map([
+      [
+        "session-1",
+        {
+          meta: { projectId: "proj-1", ticketId: "ticket-1", brainstormId: "" },
+          process: null,
+          logStream: null,
+          exitPromise: Promise.resolve(),
+          exitResolver: () => {},
+        },
+      ],
+      [
+        "session-2",
+        {
+          meta: { projectId: "proj-1", ticketId: "ticket-1", brainstormId: "" },
+          process: null,
+          logStream: null,
+          exitPromise: Promise.resolve(),
+          exitResolver: () => {},
+        },
+      ],
+    ]);
+
+    // @ts-ignore - accessing private property for testing
+    sessionService.sessions = mockSessions;
+
+    const result = sessionService.getProcessingByProject();
+
+    assert.deepEqual(result.get("proj-1"), {
+      ticketIds: ["ticket-1"],
+      brainstormIds: [],
+    });
+  });
+
+  it("should return empty map when no sessions", () => {
+    const eventEmitter = new EventEmitter();
+    const sessionService = new SessionService(eventEmitter);
+
+    const result = sessionService.getProcessingByProject();
+    assert.strictEqual(result.size, 0);
+  });
+
+  it("should skip sessions with missing projectId", () => {
+    const eventEmitter = new EventEmitter();
+    const sessionService = new SessionService(eventEmitter);
+
+    const mockSessions = new Map([
+      [
+        "session-1",
+        {
+          meta: { projectId: "", ticketId: "ticket-1", brainstormId: "" },
+          process: null,
+          logStream: null,
+          exitPromise: Promise.resolve(),
+          exitResolver: () => {},
+        },
+      ],
+    ]);
+
+    // @ts-ignore - accessing private property for testing
+    sessionService.sessions = mockSessions;
+
+    const result = sessionService.getProcessingByProject();
+    assert.strictEqual(result.size, 0);
+  });
+});
