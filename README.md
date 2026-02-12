@@ -87,7 +87,7 @@ pnpm build
 
 ```bash
 # Start the daemon (creates ~/.potato-cannon/ on first run)
-# Web UI available at http://localhost:8443
+# Web UI available at http://localhost:5173
 potato-cannon start
 
 # Or run in development mode with hot reload
@@ -96,7 +96,7 @@ pnpm dev
 
 ### Usage
 
-1. Open http://localhost:8443 in your browser
+1. Open http://localhost:5173 in your browser
 2. Select your registered project
 3. Click "New Brainstorm" to start exploring an idea
 4. Chat with the agent to refine your requirements
@@ -144,7 +144,7 @@ Example: A Build phase might have a `taskLoop` containing a `ralphLoop` with bui
 ## CLI Commands
 
 ```bash
-potato-cannon start             # Start daemon (default port 8443)
+potato-cannon start             # Start daemon (default port 5173)
 potato-cannon start --port 9000 # Start on custom port
 potato-cannon start --daemon    # Run in background
 potato-cannon status            # Check if daemon is running
@@ -163,7 +163,7 @@ Configuration is stored at `~/.potato-cannon/config.json`:
     "forumGroupId": "optional-forum-group-id"
   },
   "daemon": {
-    "port": 8443
+    "port": 5173
   }
 }
 ```
