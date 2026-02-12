@@ -9,6 +9,7 @@ import { EventEmitter } from "events";
 import { fileURLToPath } from "url";
 
 import { SESSIONS_DIR } from "../../config/paths.js";
+import { eventBus } from "../../utils/event-bus.js";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
@@ -910,8 +911,17 @@ export class SessionService {
       return;
     }
 
-    await updateTicket(projectId, ticketId, { phase: nextPhase });
+    const ticket = await updateTicket(projectId, ticketId, { phase: nextPhase });
     console.log(`[handlePhaseTransition] Transitioned to ${nextPhase}`);
+
+    // Emit SSE events so frontend updates
+    eventBus.emit("ticket:updated", { projectId, ticket });
+    eventBus.emit("ticket:moved", {
+      projectId,
+      ticketId,
+      from: completedPhase,
+      to: nextPhase,
+    });
 
     // Check if next phase has workers
     const phaseConfig = await getPhaseConfig(projectId, nextPhase);
@@ -929,9 +939,22 @@ export class SessionService {
     reason: string
   ): Promise<void> {
     console.log(`[handleTicketBlocked] Blocking ticket ${ticketId}: ${reason}`);
-    await updateTicket(projectId, ticketId, { phase: "Blocked" });
+
+    // Get current phase before updating
+    const currentTicket = getTicket(projectId, ticketId);
+    const previousPhase = currentTicket.phase;
+
+    const ticket = await updateTicket(projectId, ticketId, { phase: "Blocked" });
     await logToDaemon(projectId, ticketId, `Ticket blocked: ${reason}`);
-    // TODO: Send chat notification
+
+    // Emit SSE events so frontend updates
+    eventBus.emit("ticket:updated", { projectId, ticket });
+    eventBus.emit("ticket:moved", {
+      projectId,
+      ticketId,
+      from: previousPhase,
+      to: "Blocked",
+    });
   }
 
   async stopAll(timeout: number = 4000): Promise<void> {
