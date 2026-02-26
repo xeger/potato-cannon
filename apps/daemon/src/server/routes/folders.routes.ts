@@ -67,13 +67,12 @@ export function registerFolderRoutes(app: Express): void {
         return;
       }
 
-      const existing = getFolderById(id);
-      if (!existing) {
+      const folder = renameFolder(id, trimmed);
+      if (!folder) {
         res.status(404).json({ error: "Folder not found" });
         return;
       }
 
-      const folder = renameFolder(id, trimmed);
       eventBus.emit("folder:updated", {});
       res.json(folder);
     } catch (error) {
@@ -91,13 +90,12 @@ export function registerFolderRoutes(app: Express): void {
     try {
       const id = decodeURIComponent(req.params.id);
 
-      const existing = getFolderById(id);
-      if (!existing) {
+      const success = deleteFolder(id);
+      if (!success) {
         res.status(404).json({ error: "Folder not found" });
         return;
       }
 
-      deleteFolder(id);
       eventBus.emit("folder:updated", {});
       res.json({ ok: true });
     } catch (error) {
