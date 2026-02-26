@@ -51,10 +51,11 @@ import { toast } from 'sonner'
 
 const mockArtifact = {
   filename: 'test-artifact.md',
-  type: '.md',
+  type: 'specification' as const,
   description: 'A test artifact',
   savedAt: '2026-01-01T00:00:00.000Z',
   phase: 'Specification',
+  versionCount: 1,
 }
 
 const mockContent = '# Test Heading\n\nSome **bold** content.'
