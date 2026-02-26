@@ -42,7 +42,7 @@ import {
 } from "./loops/task-loop.js";
 import { getPhaseConfig, getNextEnabledPhase } from "./phase-config.js";
 import { updateTicket } from "../../stores/ticket.store.js";
-import { readQuestion } from "../../stores/chat.store.js";
+import { readQuestion, clearQuestion } from "../../stores/chat.store.js";
 import { updateTaskStatus } from "../../stores/task.store.js";
 import { logToDaemon } from "./ticket-logger.js";
 import {
@@ -246,6 +246,10 @@ export async function startPhase(
     console.log(`[WorkerExecutor] No phase config for ${phase}`);
     return null;
   }
+
+  // Clear any stale pending question from a previous suspended session
+  // This prevents a new phase execution from being misidentified as suspended on exit
+  await clearQuestion(projectId, ticketId);
 
   // Validate phase
   validatePhaseWorkers(phaseConfig);
