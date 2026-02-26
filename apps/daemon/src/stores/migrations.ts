@@ -392,7 +392,11 @@ function migrateV7(db: Database.Database): void {
       created_at TEXT NOT NULL DEFAULT (datetime('now')),
       updated_at TEXT NOT NULL DEFAULT (datetime('now'))
     );
-
-    ALTER TABLE projects ADD COLUMN folder_id TEXT REFERENCES folders(id) ON DELETE SET NULL;
   `);
+
+  const columns = db.pragma('table_info(projects)') as { name: string }[];
+  const hasFolderId = columns.some((col) => col.name === 'folder_id');
+  if (!hasFolderId) {
+    db.exec(`ALTER TABLE projects ADD COLUMN folder_id TEXT REFERENCES folders(id) ON DELETE SET NULL`);
+  }
 }
