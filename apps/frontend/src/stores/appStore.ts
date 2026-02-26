@@ -47,6 +47,16 @@ interface AppState {
   openTicketSheet: (projectId: string, ticketId: string) => void
   closeTicketSheet: () => void
 
+  // Brainstorm sidebar state
+  brainstormSheetOpen: boolean
+  brainstormSheetBrainstormId: string | null
+  brainstormSheetProjectId: string | null
+  brainstormSheetBrainstormName: string | null
+  brainstormSheetIsCreating: boolean
+  openBrainstormSheet: (projectId: string, brainstormId: string, brainstormName: string) => void
+  openNewBrainstormSheet: (projectId: string) => void
+  closeBrainstormSheet: () => void
+
   addProjectModalOpen: boolean
   openAddProjectModal: () => void
   closeAddProjectModal: () => void
@@ -117,12 +127,62 @@ export const useAppStore = create<AppState>()(
         return projectSet?.has(ticketId) ?? false
       },
 
-      // Ticket sheet
+      // Ticket sheet — closes brainstorm sidebar (mutual exclusion)
       ticketSheetOpen: false,
       ticketSheetTicketId: null,
       ticketSheetProjectId: null,
-      openTicketSheet: (projectId, ticketId) => set({ ticketSheetOpen: true, ticketSheetProjectId: projectId, ticketSheetTicketId: ticketId }),
-      closeTicketSheet: () => set({ ticketSheetOpen: false, ticketSheetProjectId: null, ticketSheetTicketId: null }),
+      openTicketSheet: (projectId, ticketId) => set({
+        ticketSheetOpen: true,
+        ticketSheetProjectId: projectId,
+        ticketSheetTicketId: ticketId,
+        // Mutual exclusion: close brainstorm sidebar
+        brainstormSheetOpen: false,
+        brainstormSheetBrainstormId: null,
+        brainstormSheetProjectId: null,
+        brainstormSheetBrainstormName: null,
+        brainstormSheetIsCreating: false
+      }),
+      closeTicketSheet: () => set({
+        ticketSheetOpen: false,
+        ticketSheetProjectId: null,
+        ticketSheetTicketId: null
+      }),
+
+      // Brainstorm sheet — closes ticket sidebar (mutual exclusion)
+      brainstormSheetOpen: false,
+      brainstormSheetBrainstormId: null,
+      brainstormSheetProjectId: null,
+      brainstormSheetBrainstormName: null,
+      brainstormSheetIsCreating: false,
+      openBrainstormSheet: (projectId, brainstormId, brainstormName) => set({
+        brainstormSheetOpen: true,
+        brainstormSheetProjectId: projectId,
+        brainstormSheetBrainstormId: brainstormId,
+        brainstormSheetBrainstormName: brainstormName,
+        brainstormSheetIsCreating: false,
+        // Mutual exclusion: close ticket sidebar
+        ticketSheetOpen: false,
+        ticketSheetTicketId: null,
+        ticketSheetProjectId: null
+      }),
+      openNewBrainstormSheet: (projectId) => set({
+        brainstormSheetOpen: true,
+        brainstormSheetProjectId: projectId,
+        brainstormSheetBrainstormId: null,
+        brainstormSheetBrainstormName: null,
+        brainstormSheetIsCreating: true,
+        // Mutual exclusion: close ticket sidebar
+        ticketSheetOpen: false,
+        ticketSheetTicketId: null,
+        ticketSheetProjectId: null
+      }),
+      closeBrainstormSheet: () => set({
+        brainstormSheetOpen: false,
+        brainstormSheetBrainstormId: null,
+        brainstormSheetProjectId: null,
+        brainstormSheetBrainstormName: null,
+        brainstormSheetIsCreating: false
+      }),
 
       // Add project modal
       addProjectModalOpen: false,
