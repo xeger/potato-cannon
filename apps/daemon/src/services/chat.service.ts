@@ -379,22 +379,28 @@ export class ChatService {
       answer,
     });
 
-    // For brainstorm contexts (async askAsync flow), save user message here.
-    // Ticket contexts use blocking ask() which handles its own message saving
-    // when waitForResponse returns — doing it here too would create duplicates.
-    if (context.brainstormId) {
-      const conversationId = this.getConversationId(context);
-      if (conversationId) {
-        const pendingQuestion = getPendingQuestion(conversationId);
-        if (pendingQuestion) {
-          answerQuestion(pendingQuestion.id);
-          addMessage(conversationId, {
-            type: "user",
-            text: answer,
-          });
+    // All contexts use async askAsync flow — save user message to conversation store here.
+    const conversationId = this.getConversationId(context);
+    if (conversationId) {
+      const pendingQuestion = getPendingQuestion(conversationId);
+      if (pendingQuestion) {
+        answerQuestion(pendingQuestion.id);
+        addMessage(conversationId, {
+          type: "user",
+          text: answer,
+        });
+
+        if (context.brainstormId) {
           eventBus.emit("brainstorm:message", {
             projectId: context.projectId,
             brainstormId: context.brainstormId,
+            message: { type: "user", text: answer, timestamp: new Date().toISOString() },
+          });
+        }
+        if (context.ticketId) {
+          eventBus.emit("ticket:message", {
+            projectId: context.projectId,
+            ticketId: context.ticketId,
             message: { type: "user", text: answer, timestamp: new Date().toISOString() },
           });
         }
