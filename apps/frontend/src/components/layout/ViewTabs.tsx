@@ -1,5 +1,5 @@
 import { Link, useLocation } from '@tanstack/react-router'
-import { LayoutDashboard, Lightbulb, SlidersHorizontal } from 'lucide-react'
+import { LayoutDashboard, SlidersHorizontal } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import {
   Tooltip,
@@ -17,29 +17,10 @@ export function ViewTabs() {
   if (!projectId) return null // Don't show tabs if not on a project route
 
   const isBoardActive = location.pathname.endsWith('/board')
-  const isBrainstormActive = location.pathname.endsWith('/brainstorm')
   const isConfigureActive = location.pathname.endsWith('/configure')
 
   return (
     <nav className="hidden sm:flex flex-1 items-center gap-1">
-      <Tooltip>
-        <TooltipTrigger asChild>
-          <Link
-            to="/projects/$projectId/brainstorm"
-            params={{ projectId }}
-            className={cn(
-              'flex items-center gap-1.5 px-3 py-1.5 rounded-md text-sm transition-colors',
-              isBrainstormActive
-                ? 'bg-bg-tertiary text-text-primary'
-                : 'text-text-secondary hover:bg-bg-hover hover:text-text-primary'
-            )}
-          >
-            <Lightbulb className="h-4 w-4" />
-            <span>Brainstorm</span>
-          </Link>
-        </TooltipTrigger>
-        <TooltipContent>AI will help you create tickets</TooltipContent>
-      </Tooltip>
       <Tooltip>
         <TooltipTrigger asChild>
           <Link
