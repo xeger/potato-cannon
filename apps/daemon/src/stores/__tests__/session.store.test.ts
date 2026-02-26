@@ -343,4 +343,42 @@ describe("SessionStore", () => {
       assert.strictEqual(result, "claude_second");
     });
   });
+
+  describe("getLatestClaudeSessionIdForTicket", () => {
+    it("should return null when no sessions exist for ticket", () => {
+      const ticket = ticketStore.createTicket(projectId, { title: "Test Ticket" });
+      const result = sessionStore.getLatestClaudeSessionIdForTicket(ticket.id);
+      assert.strictEqual(result, null);
+    });
+
+    it("should return the claude session id from the latest session", () => {
+      const ticket = ticketStore.createTicket(projectId, { title: "Test Ticket 2" });
+      const session = sessionStore.createSession({
+        projectId,
+        ticketId: ticket.id,
+        claudeSessionId: "claude_sess_abc",
+        agentSource: "test",
+      });
+      const result = sessionStore.getLatestClaudeSessionIdForTicket(ticket.id);
+      assert.strictEqual(result, "claude_sess_abc");
+    });
+
+    it("should return the most recent claude session id", () => {
+      const ticket = ticketStore.createTicket(projectId, { title: "Test Ticket 3" });
+      sessionStore.createSession({
+        projectId,
+        ticketId: ticket.id,
+        claudeSessionId: "claude_sess_old",
+        agentSource: "test",
+      });
+      sessionStore.createSession({
+        projectId,
+        ticketId: ticket.id,
+        claudeSessionId: "claude_sess_new",
+        agentSource: "test",
+      });
+      const result = sessionStore.getLatestClaudeSessionIdForTicket(ticket.id);
+      assert.strictEqual(result, "claude_sess_new");
+    });
+  });
 });

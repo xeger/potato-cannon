@@ -172,6 +172,18 @@ export class SessionStore {
     return row?.claude_session_id || null;
   }
 
+  getLatestClaudeSessionIdForTicket(ticketId: string): string | null {
+    const row = this.db
+      .prepare(
+        `SELECT claude_session_id FROM sessions
+         WHERE ticket_id = ? AND claude_session_id IS NOT NULL
+         ORDER BY started_at DESC, ROWID DESC LIMIT 1`
+      )
+      .get(ticketId) as { claude_session_id: string } | undefined;
+
+    return row?.claude_session_id || null;
+  }
+
   /**
    * Delete all sessions for a ticket that occurred in or after the specified phases.
    * Also ends any active sessions for these phases.
@@ -247,6 +259,10 @@ export function hasActiveStoredSession(
 
 export function getLatestClaudeSessionId(brainstormId: string): string | null {
   return new SessionStore(getDatabase()).getLatestClaudeSessionId(brainstormId);
+}
+
+export function getLatestClaudeSessionIdForTicket(ticketId: string): string | null {
+  return new SessionStore(getDatabase()).getLatestClaudeSessionIdForTicket(ticketId);
 }
 
 export function updateClaudeSessionId(
