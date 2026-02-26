@@ -1,8 +1,9 @@
 import { useState, useEffect, useMemo } from 'react'
 import { marked } from 'marked'
 import DOMPurify from 'dompurify'
-import { FileText, Loader2, X } from 'lucide-react'
+import { Check, Copy, FileText, Loader2, X } from 'lucide-react'
 import { api } from '@/api/client'
+import { toast } from 'sonner'
 import { cn } from '@/lib/utils'
 import { Button } from '@/components/ui/button'
 import { ScrollArea } from '@/components/ui/scroll-area'
@@ -28,6 +29,25 @@ export function ArtifactViewerFull({
   const [isLoading, setIsLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [activeTab, setActiveTab] = useState<'document' | 'chat'>('document')
+  const [copied, setCopied] = useState(false)
+
+  // Clean up copy timeout on unmount
+  useEffect(() => {
+    if (!copied) return
+    const timer = setTimeout(() => setCopied(false), 2000)
+    return () => clearTimeout(timer)
+  }, [copied])
+
+  const handleCopy = () => {
+    navigator.clipboard.writeText(content)
+      .then(() => {
+        setCopied(true)
+        toast.success('Copied to clipboard!')
+      })
+      .catch(() => {
+        toast.error('Failed to copy to clipboard')
+      })
+  }
 
   // Fetch artifact content when artifact changes
   useEffect(() => {
@@ -130,34 +150,49 @@ export function ArtifactViewerFull({
                 <p className="text-xs text-text-muted mt-1">{artifact.description}</p>
               )}
             </div>
-            <ScrollArea className="flex-1 min-h-0">
-              <div className="p-4">
-                {isLoading ? (
-                  <div className="flex items-center justify-center py-8">
-                    <Loader2 className="h-5 w-5 animate-spin text-text-muted" />
-                  </div>
-                ) : error ? (
-                  <div className="text-sm text-accent-red py-4">{error}</div>
-                ) : content ? (
-                  <div
-                    className="prose prose-sm prose-invert max-w-none text-text-secondary
-                      [&_p]:my-2 [&_ul]:my-2 [&_ol]:my-2 [&_li]:my-0
-                      [&_a]:text-accent [&_a]:no-underline hover:[&_a]:underline
-                      [&_code]:bg-bg-tertiary [&_code]:px-1 [&_code]:py-0.5 [&_code]:rounded
-                      [&_pre]:bg-bg-tertiary [&_pre]:p-3 [&_pre]:rounded [&_pre]:overflow-x-auto
-                      [&_h1]:text-lg [&_h1]:text-text-primary [&_h1]:mt-4 [&_h1]:mb-2
-                      [&_h2]:text-base [&_h2]:text-text-primary [&_h2]:mt-4 [&_h2]:mb-2
-                      [&_h3]:text-sm [&_h3]:text-text-primary [&_h3]:mt-3 [&_h3]:mb-1
-                      [&_blockquote]:border-l-2 [&_blockquote]:border-accent [&_blockquote]:pl-4 [&_blockquote]:italic
-                      [&_table]:w-full [&_th]:text-left [&_th]:p-2 [&_th]:border-b [&_th]:border-border
-                      [&_td]:p-2 [&_td]:border-b [&_td]:border-border"
-                    dangerouslySetInnerHTML={{ __html: renderedContent }}
-                  />
-                ) : (
-                  <p className="text-sm text-text-muted italic py-4">No content</p>
-                )}
-              </div>
-            </ScrollArea>
+            <div className="relative group/content flex-1 min-h-0">
+              {content && !isLoading && !error && (
+                <button
+                  onClick={handleCopy}
+                  aria-label="Copy to clipboard"
+                  className="absolute top-2 right-4 z-10 p-1.5 rounded-md
+                    bg-bg-tertiary/80 backdrop-blur-sm border border-border
+                    text-text-muted hover:text-text-primary
+                    opacity-0 group-hover/content:opacity-100
+                    transition-opacity cursor-pointer"
+                >
+                  {copied ? <Check className="h-4 w-4" /> : <Copy className="h-4 w-4" />}
+                </button>
+              )}
+              <ScrollArea className="flex-1 min-h-0">
+                <div className="p-4">
+                  {isLoading ? (
+                    <div className="flex items-center justify-center py-8">
+                      <Loader2 className="h-5 w-5 animate-spin text-text-muted" />
+                    </div>
+                  ) : error ? (
+                    <div className="text-sm text-accent-red py-4">{error}</div>
+                  ) : content ? (
+                    <div
+                      className="prose prose-sm prose-invert max-w-none text-text-secondary
+                        [&_p]:my-2 [&_ul]:my-2 [&_ol]:my-2 [&_li]:my-0
+                        [&_a]:text-accent [&_a]:no-underline hover:[&_a]:underline
+                        [&_code]:bg-bg-tertiary [&_code]:px-1 [&_code]:py-0.5 [&_code]:rounded
+                        [&_pre]:bg-bg-tertiary [&_pre]:p-3 [&_pre]:rounded [&_pre]:overflow-x-auto
+                        [&_h1]:text-lg [&_h1]:text-text-primary [&_h1]:mt-4 [&_h1]:mb-2
+                        [&_h2]:text-base [&_h2]:text-text-primary [&_h2]:mt-4 [&_h2]:mb-2
+                        [&_h3]:text-sm [&_h3]:text-text-primary [&_h3]:mt-3 [&_h3]:mb-1
+                        [&_blockquote]:border-l-2 [&_blockquote]:border-accent [&_blockquote]:pl-4 [&_blockquote]:italic
+                        [&_table]:w-full [&_th]:text-left [&_th]:p-2 [&_th]:border-b [&_th]:border-border
+                        [&_td]:p-2 [&_td]:border-b [&_td]:border-border"
+                      dangerouslySetInnerHTML={{ __html: renderedContent }}
+                    />
+                  ) : (
+                    <p className="text-sm text-text-muted italic py-4">No content</p>
+                  )}
+                </div>
+              </ScrollArea>
+            </div>
           </div>
 
           {/* Right pane - Chat */}
