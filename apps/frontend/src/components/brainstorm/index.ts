@@ -1,6 +1,4 @@
-export { BrainstormPage } from './BrainstormPage'
 export { BrainstormChat } from './BrainstormChat'
-export { BrainstormMaster } from './BrainstormMaster'
-export { BrainstormDetail } from './BrainstormDetail'
+export { BrainstormDetailPanel } from './BrainstormDetailPanel'
 export { BrainstormListItem } from './BrainstormListItem'
 export { BrainstormNewForm } from './BrainstormNewForm'
