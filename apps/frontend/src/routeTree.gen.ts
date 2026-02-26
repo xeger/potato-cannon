@@ -15,7 +15,6 @@ import { Route as IndexRouteImport } from './routes/index'
 import { Route as TemplatesIndexRouteImport } from './routes/templates/index'
 import { Route as TemplatesNameRouteImport } from './routes/templates/$name'
 import { Route as ProjectsProjectIdConfigureRouteImport } from './routes/projects/$projectId/configure'
-import { Route as ProjectsProjectIdBrainstormRouteImport } from './routes/projects/$projectId/brainstorm'
 import { Route as ProjectsProjectIdBoardRouteImport } from './routes/projects/$projectId/board'
 
 const SessionsRoute = SessionsRouteImport.update({
@@ -49,12 +48,6 @@ const ProjectsProjectIdConfigureRoute =
     path: '/projects/$projectId/configure',
     getParentRoute: () => rootRouteImport,
   } as any)
-const ProjectsProjectIdBrainstormRoute =
-  ProjectsProjectIdBrainstormRouteImport.update({
-    id: '/projects/$projectId/brainstorm',
-    path: '/projects/$projectId/brainstorm',
-    getParentRoute: () => rootRouteImport,
-  } as any)
 const ProjectsProjectIdBoardRoute = ProjectsProjectIdBoardRouteImport.update({
   id: '/projects/$projectId/board',
   path: '/projects/$projectId/board',
@@ -68,7 +61,6 @@ export interface FileRoutesByFullPath {
   '/templates/$name': typeof TemplatesNameRoute
   '/templates/': typeof TemplatesIndexRoute
   '/projects/$projectId/board': typeof ProjectsProjectIdBoardRoute
-  '/projects/$projectId/brainstorm': typeof ProjectsProjectIdBrainstormRoute
   '/projects/$projectId/configure': typeof ProjectsProjectIdConfigureRoute
 }
 export interface FileRoutesByTo {
@@ -78,7 +70,6 @@ export interface FileRoutesByTo {
   '/templates/$name': typeof TemplatesNameRoute
   '/templates': typeof TemplatesIndexRoute
   '/projects/$projectId/board': typeof ProjectsProjectIdBoardRoute
-  '/projects/$projectId/brainstorm': typeof ProjectsProjectIdBrainstormRoute
   '/projects/$projectId/configure': typeof ProjectsProjectIdConfigureRoute
 }
 export interface FileRoutesById {
@@ -89,7 +80,6 @@ export interface FileRoutesById {
   '/templates/$name': typeof TemplatesNameRoute
   '/templates/': typeof TemplatesIndexRoute
   '/projects/$projectId/board': typeof ProjectsProjectIdBoardRoute
-  '/projects/$projectId/brainstorm': typeof ProjectsProjectIdBrainstormRoute
   '/projects/$projectId/configure': typeof ProjectsProjectIdConfigureRoute
 }
 export interface FileRouteTypes {
@@ -101,7 +91,6 @@ export interface FileRouteTypes {
     | '/templates/$name'
     | '/templates/'
     | '/projects/$projectId/board'
-    | '/projects/$projectId/brainstorm'
     | '/projects/$projectId/configure'
   fileRoutesByTo: FileRoutesByTo
   to:
@@ -111,7 +100,6 @@ export interface FileRouteTypes {
     | '/templates/$name'
     | '/templates'
     | '/projects/$projectId/board'
-    | '/projects/$projectId/brainstorm'
     | '/projects/$projectId/configure'
   id:
     | '__root__'
@@ -121,7 +109,6 @@ export interface FileRouteTypes {
     | '/templates/$name'
     | '/templates/'
     | '/projects/$projectId/board'
-    | '/projects/$projectId/brainstorm'
     | '/projects/$projectId/configure'
   fileRoutesById: FileRoutesById
 }
@@ -132,7 +119,6 @@ export interface RootRouteChildren {
   TemplatesNameRoute: typeof TemplatesNameRoute
   TemplatesIndexRoute: typeof TemplatesIndexRoute
   ProjectsProjectIdBoardRoute: typeof ProjectsProjectIdBoardRoute
-  ProjectsProjectIdBrainstormRoute: typeof ProjectsProjectIdBrainstormRoute
   ProjectsProjectIdConfigureRoute: typeof ProjectsProjectIdConfigureRoute
 }
 
@@ -180,13 +166,6 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ProjectsProjectIdConfigureRouteImport
       parentRoute: typeof rootRouteImport
     }
-    '/projects/$projectId/brainstorm': {
-      id: '/projects/$projectId/brainstorm'
-      path: '/projects/$projectId/brainstorm'
-      fullPath: '/projects/$projectId/brainstorm'
-      preLoaderRoute: typeof ProjectsProjectIdBrainstormRouteImport
-      parentRoute: typeof rootRouteImport
-    }
     '/projects/$projectId/board': {
       id: '/projects/$projectId/board'
       path: '/projects/$projectId/board'
@@ -204,7 +183,6 @@ const rootRouteChildren: RootRouteChildren = {
   TemplatesNameRoute: TemplatesNameRoute,
   TemplatesIndexRoute: TemplatesIndexRoute,
   ProjectsProjectIdBoardRoute: ProjectsProjectIdBoardRoute,
-  ProjectsProjectIdBrainstormRoute: ProjectsProjectIdBrainstormRoute,
   ProjectsProjectIdConfigureRoute: ProjectsProjectIdConfigureRoute,
 }
 export const routeTree = rootRouteImport
