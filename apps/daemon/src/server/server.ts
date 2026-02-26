@@ -239,7 +239,7 @@ async function recoverPendingResponses(): Promise<void> {
           continue;
         }
 
-        // Skip terminal phases - no further automated work should occur
+        // Skip terminal phases
         if (isTerminalPhase(ticket.phase)) {
           console.log(
             `[recovery] Ticket ${item.contextId} is in terminal phase ${ticket.phase}, cleaning up stale pending files`,
@@ -249,16 +249,46 @@ async function recoverPendingResponses(): Promise<void> {
           continue;
         }
 
-        const sessionId = await sessionService.spawnForTicket(
-          item.projectId,
-          item.contextId,
-          ticket.phase,
-          project.path,
-        );
-        await updateTicket(item.projectId, item.contextId, { sessionId });
-        console.log(
-          `[recovery] Spawned session ${sessionId} for ticket ${item.contextId}`,
-        );
+        // Check if this was a suspended session (has both pending question and response)
+        if (item.question) {
+          // Suspended session — resume with --resume flag
+          try {
+            const newSessionId = await sessionService.resumeSuspendedTicket(
+              item.projectId,
+              item.contextId,
+              item.response.answer,
+            );
+            console.log(
+              `[recovery] Resumed suspended session ${newSessionId} for ticket ${item.contextId}`,
+            );
+          } catch (err) {
+            console.error(
+              `[recovery] Failed to resume suspended ticket ${item.contextId}: ${(err as Error).message}`,
+            );
+            // Fall back to standard recovery
+            const sessionId = await sessionService.spawnForTicket(
+              item.projectId,
+              item.contextId,
+              ticket.phase,
+              project.path,
+            );
+            console.log(
+              `[recovery] Fallback: spawned session ${sessionId} for ticket ${item.contextId}`,
+            );
+          }
+        } else {
+          // Standard recovery — no pending question means it was a blocking ask
+          const sessionId = await sessionService.spawnForTicket(
+            item.projectId,
+            item.contextId,
+            ticket.phase,
+            project.path,
+          );
+          await updateTicket(item.projectId, item.contextId, { sessionId });
+          console.log(
+            `[recovery] Spawned session ${sessionId} for ticket ${item.contextId}`,
+          );
+        }
       } else {
         const brainstorm = await getBrainstorm(item.projectId, item.contextId);
         if (!brainstorm) {
