@@ -47,6 +47,7 @@ class ResizeObserverMock {
 global.ResizeObserver = ResizeObserverMock as any
 
 import { api } from '@/api/client'
+import { toast } from 'sonner'
 
 const mockArtifact = {
   filename: 'test-artifact.md',
@@ -166,6 +167,59 @@ describe('ArtifactViewerFull - Copy Button', () => {
     // Verify clipboard.writeText was called with the raw markdown
     await waitFor(() => {
       expect(clipboardWriteTextMock).toHaveBeenCalledWith(mockContent)
+    })
+  })
+
+  it('shows success toast after successful copy', async () => {
+    const user = userEvent.setup()
+
+    render(
+      <ArtifactViewerFull
+        projectId="proj-1"
+        ticketId="ticket-1"
+        artifact={mockArtifact}
+        onClose={vi.fn()}
+      />
+    )
+
+    await waitFor(() => {
+      expect(screen.getByLabelText('Copy to clipboard')).toBeTruthy()
+    })
+
+    await user.click(screen.getByLabelText('Copy to clipboard'))
+
+    await waitFor(() => {
+      expect(toast.success).toHaveBeenCalledWith('Copied to clipboard!')
+    })
+  })
+
+  it('shows error toast when clipboard write fails', async () => {
+    const user = userEvent.setup()
+    Object.defineProperty(navigator, 'clipboard', {
+      value: {
+        writeText: vi.fn().mockRejectedValue(new Error('Permission denied')),
+      },
+      writable: true,
+      configurable: true,
+    })
+
+    render(
+      <ArtifactViewerFull
+        projectId="proj-1"
+        ticketId="ticket-1"
+        artifact={mockArtifact}
+        onClose={vi.fn()}
+      />
+    )
+
+    await waitFor(() => {
+      expect(screen.getByLabelText('Copy to clipboard')).toBeTruthy()
+    })
+
+    await user.click(screen.getByLabelText('Copy to clipboard'))
+
+    await waitFor(() => {
+      expect(toast.error).toHaveBeenCalledWith('Failed to copy to clipboard')
     })
   })
 })
