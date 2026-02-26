@@ -439,11 +439,10 @@ export class SessionService {
             event: logEntry,
           });
 
-          // Capture Claude's session ID from init event (for --resume support)
+          // Capture Claude's session ID from the first system event that has one
           if (
             !claudeSessionIdCaptured &&
             event.type === "system" &&
-            event.subtype === "init" &&
             event.session_id
           ) {
             claudeSessionIdCaptured = true;
@@ -764,11 +763,10 @@ export class SessionService {
             event: logEntry,
           });
 
-          // Capture Claude's session ID from the init event (first session only)
+          // Capture Claude's session ID from the first system event (first session only)
           if (
             !claudeSessionIdCaptured &&
             event.type === "system" &&
-            event.subtype === "init" &&
             event.session_id
           ) {
             claudeSessionIdCaptured = true;
