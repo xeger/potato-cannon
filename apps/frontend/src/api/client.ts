@@ -1,6 +1,7 @@
 // src/api/client.ts
 import type {
   Project,
+  Folder,
   Ticket,
   Session,
   Brainstorm,
@@ -59,7 +60,7 @@ export const api = {
       method: 'DELETE'
     }),
 
-  updateProject: (id: string, updates: { displayName?: string; icon?: string; color?: string; swimlaneColors?: Record<string, string>; branchPrefix?: string }) =>
+  updateProject: (id: string, updates: { displayName?: string; icon?: string; color?: string; swimlaneColors?: Record<string, string>; branchPrefix?: string; folderId?: string | null }) =>
     request<Project>(`/api/projects/${encodeURIComponent(id)}`, {
       method: 'PATCH',
       body: JSON.stringify(updates)
@@ -69,6 +70,28 @@ export const api = {
     request<Project>(`/api/projects/${encodeURIComponent(projectId)}/disabled-phases`, {
       method: 'PATCH',
       body: JSON.stringify({ phaseId, disabled })
+    }),
+
+  // ============ Folders ============
+
+  getFolders: () =>
+    request<Folder[]>('/api/folders'),
+
+  createFolder: (name: string) =>
+    request<Folder>('/api/folders', {
+      method: 'POST',
+      body: JSON.stringify({ name })
+    }),
+
+  renameFolder: (id: string, name: string) =>
+    request<Folder>(`/api/folders/${encodeURIComponent(id)}`, {
+      method: 'PATCH',
+      body: JSON.stringify({ name })
+    }),
+
+  deleteFolder: (id: string) =>
+    request<void>(`/api/folders/${encodeURIComponent(id)}`, {
+      method: 'DELETE'
     }),
 
   // ============ Tickets ============
