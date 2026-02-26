@@ -169,7 +169,7 @@ export function SidebarFolderGroup({
       </SidebarMenuItem>
 
       {!isCollapsed && (
-        <div className="ml-2">
+        <div className="ml-5">
           {children}
         </div>
       )}

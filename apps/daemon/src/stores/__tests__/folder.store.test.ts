@@ -175,7 +175,7 @@ describe("FolderStore", () => {
       assert.strictEqual(folder?.name, "New Name");
     });
 
-    it("should update updatedAt timestamp on rename", () => {
+    it("should update updatedAt timestamp on rename", async () => {
       const created = store.createFolder("Original");
       const beforeRename = created.updatedAt;
 
