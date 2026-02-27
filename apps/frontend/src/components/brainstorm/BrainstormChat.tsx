@@ -479,7 +479,7 @@ function MessageBubble({ message }: MessageBubbleProps) {
         )}
         {(isQuestion || isNotification) && renderedContent ? (
           <div
-            className="prose prose-sm prose-invert max-w-none text-text-secondary
+            className="prose prose-sm prose-invert max-w-none text-text-secondary break-words
               [&_p]:my-2 [&_ul]:my-2 [&_ol]:my-2 [&_li]:my-0
               [&_a]:text-accent [&_a]:no-underline hover:[&_a]:underline
               [&_code]:bg-bg-tertiary [&_code]:px-1 [&_code]:py-0.5 [&_code]:rounded
@@ -493,7 +493,7 @@ function MessageBubble({ message }: MessageBubbleProps) {
             dangerouslySetInnerHTML={{ __html: renderedContent }}
           />
         ) : (
-          <p className="text-sm whitespace-pre-wrap">
+          <p className="text-sm whitespace-pre-wrap break-words">
             <Linkify text={message.text || ''} />
           </p>
         )}
