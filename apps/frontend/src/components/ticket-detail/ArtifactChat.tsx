@@ -354,7 +354,7 @@ function MessageBubble({ message }: MessageBubbleProps) {
             <span className="text-xs font-medium">Error</span>
           </div>
         )}
-        <p className="text-sm whitespace-pre-wrap">
+        <p className="text-sm whitespace-pre-wrap break-words">
           <Linkify text={message.text || ''} />
         </p>
         {message.timestamp && (
