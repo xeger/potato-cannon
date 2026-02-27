@@ -4,9 +4,7 @@ import { BrainstormCard } from './BrainstormCard'
 
 // Mock useSSE hook
 vi.mock('@/hooks/useSSE', () => ({
-  useBrainstormMessage: vi.fn((cb) => {
-    // Mock accepts callback but doesn't need to do anything with it for these tests
-  }),
+  useBrainstormMessage: vi.fn(),
 }))
 
 // Mock appStore
@@ -107,8 +105,8 @@ describe('BrainstormCard', () => {
   })
 
   it('calls openBrainstormSheet on click', () => {
-    render(<BrainstormCard brainstorm={baseBrainstorm} projectId="proj-1" />)
-    const button = screen.getByRole('button')
+    const { container } = render(<BrainstormCard brainstorm={baseBrainstorm} projectId="proj-1" />)
+    const button = container.querySelector('button')!
     fireEvent.click(button)
     expect(mockOpenBrainstormSheet).toHaveBeenCalledWith(
       'proj-1',
