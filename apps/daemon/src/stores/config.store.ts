@@ -221,6 +221,12 @@ export async function loadGlobalConfig(): Promise<GlobalConfig | null> {
       config.providers.telegram = config.telegram;
     }
 
+    // Migrate slack config to providers.slack
+    if (config && config.slack && !config.providers?.slack) {
+      config.providers = config.providers || {};
+      config.providers.slack = config.slack;
+    }
+
     return config;
   } catch {
     return null;
