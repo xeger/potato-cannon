@@ -1,7 +1,6 @@
 import { useState, useEffect, useMemo } from 'react'
-import { marked } from 'marked'
-import DOMPurify from 'dompurify'
 import { Check, Copy, FileText, Loader2, X } from 'lucide-react'
+import { renderMarkdown } from '@/lib/markdown'
 import { api } from '@/api/client'
 import { toast } from 'sonner'
 import { cn } from '@/lib/utils'
@@ -78,8 +77,7 @@ export function ArtifactViewerFull({
   // Render markdown content
   const renderedContent = useMemo(() => {
     if (!content) return ''
-    const html = marked(content) as string
-    return DOMPurify.sanitize(html)
+    return renderMarkdown(content)
   }, [content])
 
   // Handle escape key
@@ -140,7 +138,7 @@ export function ArtifactViewerFull({
         <div className="flex-1 flex min-h-0">
           {/* Left pane - Artifact content */}
           <div className={cn(
-            "flex-1 md:w-[60%] border-r border-border flex flex-col min-w-0",
+            "flex-1 md:w-[70%] border-r border-border flex flex-col min-w-0",
             activeTab !== 'document' && 'hidden md:flex'
           )}>
             <div className="px-4 py-2 border-b border-border bg-bg-tertiary">
@@ -153,8 +151,8 @@ export function ArtifactViewerFull({
             </div>
             <div className="group/content flex-1 min-h-0 flex flex-col bg-bg-primary">
               <ScrollArea className="flex-1 min-h-0">
-                <div className="py-8 px-4 md:px-8">
-                  <div className="relative mx-auto max-w-3xl bg-bg-secondary rounded-lg shadow-lg p-8 md:p-12">
+                <div className="py-0 px-0 md:py-8 md:px-8">
+                  <div className="relative mx-auto max-w-5xl bg-bg-secondary md:rounded-lg md:shadow-lg p-4 md:p-12">
                     {content && !isLoading && !error && (
                       <button
                         onClick={handleCopy}
@@ -176,15 +174,16 @@ export function ArtifactViewerFull({
                       <div className="text-sm text-accent-red py-4">{error}</div>
                     ) : content ? (
                       <div
-                        className="prose prose-sm prose-invert max-w-none text-text-secondary
-                          [&_p]:my-2 [&_ul]:my-2 [&_ol]:my-2 [&_li]:my-0
+                        className="prose prose-invert max-w-none text-text-secondary
+                          [&_p]:my-4 [&_ul]:my-4 [&_ol]:my-4 [&_li]:my-0
                           [&_a]:text-accent [&_a]:no-underline hover:[&_a]:underline
-                          [&_code]:bg-bg-tertiary [&_code]:px-1 [&_code]:py-0.5 [&_code]:rounded
-                          [&_pre]:bg-bg-tertiary [&_pre]:p-3 [&_pre]:rounded [&_pre]:overflow-x-auto
-                          [&_h1]:text-lg [&_h1]:text-text-primary [&_h1]:mt-4 [&_h1]:mb-2
-                          [&_h2]:text-base [&_h2]:text-text-primary [&_h2]:mt-4 [&_h2]:mb-2
-                          [&_h3]:text-sm [&_h3]:text-text-primary [&_h3]:mt-3 [&_h3]:mb-1
-                          [&_blockquote]:border-l-2 [&_blockquote]:border-accent [&_blockquote]:pl-4 [&_blockquote]:italic
+                          [&_code]:bg-bg-tertiary [&_code]:px-1.5 [&_code]:py-0.5 [&_code]:rounded [&_code]:border [&_code]:border-border
+                          [&_pre]:bg-bg-tertiary [&_pre]:p-4 [&_pre]:rounded-lg [&_pre]:border [&_pre]:border-border [&_pre]:overflow-x-auto
+                          [&_pre_code]:border-0 [&_pre_code]:p-0 [&_pre_code]:bg-transparent
+                          [&_h1]:text-2xl [&_h1]:font-bold [&_h1]:text-text-primary [&_h1]:mt-8 [&_h1]:mb-4
+                          [&_h2]:text-xl [&_h2]:font-semibold [&_h2]:text-text-primary [&_h2]:mt-6 [&_h2]:mb-3
+                          [&_h3]:text-lg [&_h3]:font-medium [&_h3]:text-text-primary [&_h3]:mt-5 [&_h3]:mb-2
+                          [&_blockquote]:border-l-2 [&_blockquote]:border-accent [&_blockquote]:pl-4 [&_blockquote]:italic [&_blockquote]:bg-bg-tertiary/50 [&_blockquote]:py-2 [&_blockquote]:pr-4 [&_blockquote]:rounded-r
                           [&_table]:w-full [&_th]:text-left [&_th]:p-2 [&_th]:border-b [&_th]:border-border
                           [&_td]:p-2 [&_td]:border-b [&_td]:border-border"
                         dangerouslySetInnerHTML={{ __html: renderedContent }}
@@ -200,7 +199,7 @@ export function ArtifactViewerFull({
 
           {/* Right pane - Chat */}
           <div className={cn(
-            "w-full md:w-[40%] flex flex-col min-h-0",
+            "w-full md:w-[30%] flex flex-col min-h-0",
             activeTab !== 'chat' && 'hidden md:flex'
           )}>
             <ArtifactChat
