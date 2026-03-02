@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo, useCallback } from 'react'
+import { useState, useEffect, useMemo, useCallback, useRef } from 'react'
 import { Check, Copy, FileText, Loader2, Pencil, Save, X } from 'lucide-react'
 import { renderMarkdown } from '@/lib/markdown'
 import { api } from '@/api/client'
@@ -42,10 +42,27 @@ export function ArtifactViewerFull({
   const [isEditing, setIsEditing] = useState(false)
   const [editContent, setEditContent] = useState('')
   const [showDiscardDialog, setShowDiscardDialog] = useState(false)
+  const [isStuck, setIsStuck] = useState(false)
+  const sentinelRef = useRef<HTMLDivElement>(null)
 
   const updateArtifact = useUpdateArtifact(projectId, ticketId)
 
   const hasUnsavedChanges = isEditing && editContent !== content
+
+  // Detect when sticky header becomes stuck
+  useEffect(() => {
+    const sentinel = sentinelRef.current
+    if (!sentinel) return
+
+    const scrollRoot = sentinel.closest('[data-slot="scroll-area-viewport"]')
+    const observer = new IntersectionObserver(
+      ([entry]) => setIsStuck(!entry.isIntersecting),
+      { root: scrollRoot as Element, threshold: 0 }
+    )
+
+    observer.observe(sentinel)
+    return () => observer.disconnect()
+  }, [artifact])
 
   const handleStartEdit = useCallback(() => {
     setEditContent(content)
@@ -184,7 +201,11 @@ export function ArtifactViewerFull({
             <div className="group/content flex-1 min-h-0 flex flex-col bg-bg-primary">
               <ScrollArea className="flex-1 min-h-0">
                 <div className="py-0 px-0 md:py-8 md:px-8">
-                  <div className="sticky top-0 z-10 bg-bg-primary">
+                  <div ref={sentinelRef} className="h-0" />
+                  <div className={cn(
+                    "sticky top-0 z-10 bg-bg-primary transition-[border-color] duration-150",
+                    isStuck ? "border-b border-border" : "border-b border-transparent"
+                  )}>
                     <div className="mx-auto max-w-5xl px-4 md:px-0 pt-4 md:pt-0 pb-3">
                       <div className="flex items-center gap-2">
                         <FileText className="h-4 w-4 text-text-muted shrink-0" />
@@ -245,7 +266,7 @@ export function ArtifactViewerFull({
                           )}
                         </div>
                       </div>
-                      {artifact.description && (
+                      {artifact.description && !isStuck && (
                         <p className="text-xs text-text-muted mt-1">{artifact.description}</p>
                       )}
                     </div>

@@ -44,6 +44,14 @@ vi.mock('./ArtifactEditor', () => ({
   ),
 }))
 
+// Mock IntersectionObserver (needed for sticky header detection)
+class IntersectionObserverMock {
+  observe = vi.fn()
+  unobserve = vi.fn()
+  disconnect = vi.fn()
+}
+global.IntersectionObserver = IntersectionObserverMock as any
+
 // Mock window.matchMedia (needed for Radix UI components)
 Object.defineProperty(window, 'matchMedia', {
   writable: true,
