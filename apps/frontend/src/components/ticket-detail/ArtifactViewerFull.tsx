@@ -206,7 +206,10 @@ export function ArtifactViewerFull({
                     "sticky top-0 z-10 bg-bg-primary transition-[border-color] duration-150",
                     isStuck ? "border-b border-border" : "border-b border-transparent"
                   )}>
-                    <div className="mx-auto max-w-5xl px-4 md:px-0 pt-4 md:pt-0 pb-3">
+                    <div className={cn(
+                      "mx-auto max-w-5xl px-4 md:px-0",
+                      isStuck ? "py-2.5" : "pt-4 md:pt-0 pb-3"
+                    )}>
                       <div className="flex items-center gap-2">
                         <FileText className="h-4 w-4 text-text-muted shrink-0" />
                         <span className="text-sm font-semibold text-text-primary truncate">
