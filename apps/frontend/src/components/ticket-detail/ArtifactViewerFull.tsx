@@ -204,7 +204,9 @@ export function ArtifactViewerFull({
                   <div ref={sentinelRef} className="h-0" />
                   <div className={cn(
                     "sticky top-0 z-10 bg-bg-primary transition-[border-color] duration-150",
-                    isStuck ? "border-b border-border" : "border-b border-transparent"
+                    isStuck
+                      ? "border-b border-border md:-mx-8 md:px-8"
+                      : "border-b border-transparent"
                   )}>
                     <div className={cn(
                       "mx-auto max-w-5xl px-4 md:px-0",
