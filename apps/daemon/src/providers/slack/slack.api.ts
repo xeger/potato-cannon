@@ -8,15 +8,25 @@ export class SlackApi {
   }
 
   /**
-   * Open a DM conversation with a user. Returns the DM channel ID.
-   * If a DM already exists, Slack returns the existing channel.
+   * Discover a channel the bot is a member of.
+   * Prefers non-#general channels; falls back to #general if it's the only one.
+   * Returns { id, name } or null if the bot isn't in any channel.
+   * Requires the `channels:read` scope.
    */
-  async openConversation(userId: string): Promise<string> {
-    const result = await this.client.conversations.open({ users: userId });
-    if (!result.channel?.id) {
-      throw new Error("Failed to open DM conversation: no channel ID returned");
+  async discoverChannel(): Promise<{ id: string; name: string } | null> {
+    const result = await this.client.users.conversations({
+      types: "public_channel",
+      exclude_archived: true,
+      limit: 100,
+    });
+
+    const channels = result.channels ?? [];
+    // Prefer a non-#general channel; fall back to #general
+    const match = channels.find((ch) => !ch.is_general) ?? channels[0];
+    if (match?.id && match?.name) {
+      return { id: match.id, name: match.name };
     }
-    return result.channel.id;
+    return null;
   }
 
   /**

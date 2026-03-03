@@ -75,8 +75,8 @@ describe("SlackSocket", () => {
         type: "message",
         user: "U_USER",
         text: "bot message",
-        channel: "D_CHANNEL",
-        channel_type: "im",
+        channel: "C_CHANNEL",
+        channel_type: "channel",
         ts: "123.456",
         bot_id: "B_BOT",
       };
@@ -95,8 +95,8 @@ describe("SlackSocket", () => {
         type: "message",
         user: "U_USER",
         text: "edited message",
-        channel: "D_CHANNEL",
-        channel_type: "im",
+        channel: "C_CHANNEL",
+        channel_type: "channel",
         ts: "123.456",
         subtype: "message_changed",
       };
@@ -110,13 +110,13 @@ describe("SlackSocket", () => {
       );
     });
 
-    it("should ignore non-DM messages (channel type not 'im')", async () => {
+    it("should ignore unsupported channel types (e.g. group)", async () => {
       const event = {
         type: "message",
         user: "U_USER",
-        text: "channel message",
-        channel: "C_CHANNEL",
-        channel_type: "channel",
+        text: "group message",
+        channel: "G_GROUP",
+        channel_type: "group",
         ts: "123.456",
       };
 
@@ -125,7 +125,7 @@ describe("SlackSocket", () => {
       assert.strictEqual(
         onMessage.mock.calls.length,
         0,
-        "onMessage should not be called for non-DM messages"
+        "onMessage should not be called for group messages"
       );
     });
 
@@ -134,8 +134,8 @@ describe("SlackSocket", () => {
         type: "message",
         user: "U_USER",
         text: "",
-        channel: "D_CHANNEL",
-        channel_type: "im",
+        channel: "C_CHANNEL",
+        channel_type: "channel",
         ts: "123.456",
       };
 
@@ -153,8 +153,8 @@ describe("SlackSocket", () => {
         type: "message",
         user: "",
         text: "message text",
-        channel: "D_CHANNEL",
-        channel_type: "im",
+        channel: "C_CHANNEL",
+        channel_type: "channel",
         ts: "123.456",
       };
 
@@ -171,6 +171,22 @@ describe("SlackSocket", () => {
   describe("valid message handling", () => {
     beforeEach(() => {
       socket = createSlackSocket();
+    });
+
+    it("should call onMessage for valid channel messages", async () => {
+      const event = {
+        type: "message",
+        user: "U_USER",
+        text: "hello",
+        channel: "C_CHANNEL",
+        channel_type: "channel",
+        ts: "123.456",
+      };
+
+      await simulateMessageEvent(event);
+
+      assert.strictEqual(onMessage.mock.calls.length, 1, "onMessage should be called once");
+      assert.deepStrictEqual(onMessage.mock.calls[0].arguments[0], event);
     });
 
     it("should call onMessage for valid DM messages", async () => {
@@ -194,8 +210,8 @@ describe("SlackSocket", () => {
         type: "message",
         user: "U_USER",
         text: "test message",
-        channel: "D_CHANNEL",
-        channel_type: "im",
+        channel: "C_CHANNEL",
+        channel_type: "channel",
         ts: "123.456",
         thread_ts: "111.222",
       };
@@ -205,7 +221,7 @@ describe("SlackSocket", () => {
       const passedEvent = onMessage.mock.calls[0].arguments[0];
       assert.strictEqual(passedEvent.user, "U_USER");
       assert.strictEqual(passedEvent.text, "test message");
-      assert.strictEqual(passedEvent.channel, "D_CHANNEL");
+      assert.strictEqual(passedEvent.channel, "C_CHANNEL");
       assert.strictEqual(passedEvent.thread_ts, "111.222");
     });
 
@@ -214,8 +230,8 @@ describe("SlackSocket", () => {
         type: "message",
         user: "U_USER",
         text: "message",
-        channel: "D_CHANNEL",
-        channel_type: "im",
+        channel: "C_CHANNEL",
+        channel_type: "channel",
         ts: "123.456",
         thread_ts: "111.222",
       };
@@ -240,8 +256,8 @@ describe("SlackSocket", () => {
         type: "message",
         user: "U_USER",
         text: "message",
-        channel: "D_CHANNEL",
-        channel_type: "im",
+        channel: "C_CHANNEL",
+        channel_type: "channel",
         ts: "123.456",
       };
 
@@ -262,8 +278,8 @@ describe("SlackSocket", () => {
         type: "message",
         user: "U_USER",
         text: "message",
-        channel: "D_CHANNEL",
-        channel_type: "im",
+        channel: "C_CHANNEL",
+        channel_type: "channel",
         ts: "123.456",
       };
 
@@ -317,8 +333,8 @@ describe("SlackSocket", () => {
           type: "message",
           user: "U_USER",
           text: "message",
-          channel: "D_CHANNEL",
-          channel_type: "im",
+          channel: "C_CHANNEL",
+          channel_type: "channel",
           ts: "123.456",
         };
 

@@ -41,8 +41,8 @@ export class SlackSocket {
       // Ignore bot's own messages and message subtypes (edits, deletes, etc.)
       if (msg.bot_id || msg.subtype) return;
 
-      // Only process DM messages (channel type "im")
-      if (msg.channel_type !== "im") return;
+      // Accept DMs and channel messages (but not e.g. group messages)
+      if (msg.channel_type !== "im" && msg.channel_type !== "channel") return;
 
       // Must have text and user
       if (!msg.text || !msg.user) return;

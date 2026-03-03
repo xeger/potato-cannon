@@ -9,7 +9,7 @@ import type { ChatContext, OutboundMessage } from "../../chat-provider.types.js"
 
 function createMockApi() {
   return {
-    openConversation: mock.fn(async (_userId: string) => "D_MOCK_CHANNEL"),
+    discoverChannel: mock.fn(async () => ({ id: "C_DISCOVERED", name: "potato-cannon" })),
     postMessage: mock.fn(
       async (_channel: string, _text: string, _opts?: { thread_ts?: string }) =>
         "1234567890.123456",
@@ -56,46 +56,48 @@ describe("SlackProvider", () => {
   });
 
   describe("createThread", () => {
-    it("should throw when knownUserId is null", async () => {
+    it("should throw when channelId is not resolved", async () => {
       const context: ChatContext = { projectId: "proj1", ticketId: "T-1" };
 
       await assert.rejects(
         () => provider.createThread(context, "Test ticket"),
         (err: Error) => {
-          assert.match(err.message, /Slack user ID unknown/);
+          assert.match(err.message, /Slack channel not resolved/);
           return true;
         },
       );
     });
 
-    it("should create thread when knownUserId is set", async () => {
-      // Simulate user discovery
-      provider._setKnownUserIdForTest("U_TEST_USER");
+    it("should create thread when channelId is set", async () => {
+      provider._setChannelIdForTest("C_TEST_CHANNEL");
 
       const context: ChatContext = { projectId: "proj1", ticketId: "T-1" };
       const thread = await provider.createThread(context, "Test ticket");
 
       assert.strictEqual(thread.providerId, "slack");
-      assert.strictEqual(thread.threadId, "D_MOCK_CHANNEL");
-      assert.strictEqual((thread.metadata as any).channel, "D_MOCK_CHANNEL");
+      assert.strictEqual(thread.threadId, "C_TEST_CHANNEL");
+      assert.strictEqual((thread.metadata as any).channel, "C_TEST_CHANNEL");
       assert.strictEqual((thread.metadata as any).thread_ts, "1234567890.123456");
-      assert.strictEqual((thread.metadata as any).userId, "U_TEST_USER");
 
-      // Should have called openConversation with the user ID
-      assert.strictEqual(mockApi.openConversation.mock.calls.length, 1);
-      assert.deepStrictEqual(mockApi.openConversation.mock.calls[0].arguments, [
-        "U_TEST_USER",
-      ]);
-
-      // Should have posted a welcome message
+      // Should have posted a welcome message to the channel
       assert.strictEqual(mockApi.postMessage.mock.calls.length, 1);
       const postCall = mockApi.postMessage.mock.calls[0].arguments;
-      assert.strictEqual(postCall[0], "D_MOCK_CHANNEL");
+      assert.strictEqual(postCall[0], "C_TEST_CHANNEL");
       assert.match(postCall[1], /Test ticket/);
     });
 
+    it("should not call openConversation (no DM logic)", async () => {
+      provider._setChannelIdForTest("C_TEST_CHANNEL");
+
+      const context: ChatContext = { projectId: "proj1", ticketId: "T-1" };
+      await provider.createThread(context, "Test ticket");
+
+      // discoverChannel exists on API but openConversation should not be called
+      assert.strictEqual(mockApi.postMessage.mock.calls.length, 1);
+    });
+
     it("should cache thread for subsequent getThread calls", async () => {
-      provider._setKnownUserIdForTest("U_TEST_USER");
+      provider._setChannelIdForTest("C_TEST_CHANNEL");
 
       const context: ChatContext = { projectId: "proj1", ticketId: "T-1" };
       const created = await provider.createThread(context, "Test");
@@ -109,11 +111,10 @@ describe("SlackProvider", () => {
     it("should translate markdown to mrkdwn and post in-thread", async () => {
       const thread = {
         providerId: "slack",
-        threadId: "D_CHANNEL",
+        threadId: "C_CHANNEL",
         metadata: {
-          channel: "D_CHANNEL",
+          channel: "C_CHANNEL",
           thread_ts: "111.222",
-          userId: "U1",
         },
       };
       const message: OutboundMessage = {
@@ -124,7 +125,7 @@ describe("SlackProvider", () => {
 
       assert.strictEqual(mockApi.postMessage.mock.calls.length, 1);
       const args = mockApi.postMessage.mock.calls[0].arguments;
-      assert.strictEqual(args[0], "D_CHANNEL");
+      assert.strictEqual(args[0], "C_CHANNEL");
       assert.match(args[1], /\*Bold\* question/);
       assert.deepStrictEqual(args[2], { thread_ts: "111.222" });
     });
@@ -134,11 +135,10 @@ describe("SlackProvider", () => {
     it("should post acknowledgment in-thread", async () => {
       const thread = {
         providerId: "slack",
-        threadId: "D_CHANNEL",
+        threadId: "C_CHANNEL",
         metadata: {
-          channel: "D_CHANNEL",
+          channel: "C_CHANNEL",
           thread_ts: "111.222",
-          userId: "U1",
         },
       };
 
@@ -146,34 +146,16 @@ describe("SlackProvider", () => {
 
       assert.strictEqual(mockApi.postMessage.mock.calls.length, 1);
       const args = mockApi.postMessage.mock.calls[0].arguments;
-      assert.strictEqual(args[0], "D_CHANNEL");
+      assert.strictEqual(args[0], "C_CHANNEL");
       assert.match(args[1], /Already answered/);
       assert.match(args[1], /option A/);
       assert.deepStrictEqual(args[2], { thread_ts: "111.222" });
     });
   });
 
-  describe("handleEvent (user discovery)", () => {
-    it("should learn userId from first DM without thread_ts", async () => {
-      // Before any event, knownUserId should be null
-      assert.strictEqual(provider._getKnownUserIdForTest(), null);
-
-      // Simulate an incoming top-level DM (no thread_ts)
-      await provider._handleEventForTest({
-        type: "message",
-        user: "U_NEW_USER",
-        text: "hello bot",
-        channel: "D_SOME_CHANNEL",
-        channel_type: "im",
-        ts: "999.000",
-      });
-
-      // Now knownUserId should be set
-      assert.strictEqual(provider._getKnownUserIdForTest(), "U_NEW_USER");
-    });
-
+  describe("handleEvent (channel messages)", () => {
     it("should route threaded reply to correct context via responseCallback", async () => {
-      provider._setKnownUserIdForTest("U_USER");
+      provider._setChannelIdForTest("C_CHANNEL");
 
       // First create a thread so we have a cache entry
       const context: ChatContext = { projectId: "proj1", ticketId: "T-1" };
@@ -187,13 +169,13 @@ describe("SlackProvider", () => {
         return true;
       });
 
-      // Simulate an incoming threaded reply
+      // Simulate an incoming threaded reply in the channel
       await provider._handleEventForTest({
         type: "message",
         user: "U_USER",
         text: "my answer",
         channel: (thread.metadata as any).channel,
-        channel_type: "im",
+        channel_type: "channel",
         ts: "999.111",
         thread_ts: threadTs,
       });
@@ -202,6 +184,27 @@ describe("SlackProvider", () => {
       assert.strictEqual(callbackArgs[0], "slack");
       assert.deepStrictEqual(callbackArgs[1], context);
       assert.strictEqual(callbackArgs[2], "my answer");
+    });
+
+    it("should ignore top-level messages without thread_ts", async () => {
+      provider._setChannelIdForTest("C_CHANNEL");
+
+      let callbackCalled = false;
+      provider.setResponseCallback(async () => {
+        callbackCalled = true;
+        return true;
+      });
+
+      await provider._handleEventForTest({
+        type: "message",
+        user: "U_USER",
+        text: "hello channel",
+        channel: "C_CHANNEL",
+        channel_type: "channel",
+        ts: "999.000",
+      });
+
+      assert.strictEqual(callbackCalled, false);
     });
   });
 });

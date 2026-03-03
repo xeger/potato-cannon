@@ -8,6 +8,7 @@ export interface TelegramConfig {
 export interface SlackConfig {
   appToken: string;   // xapp-... (Socket Mode)
   botToken: string;   // xoxb-... (Web API)
+  channelId?: string; // Explicit channel override. Auto-discovered if unset.
 }
 
 export interface ProvidersConfig {

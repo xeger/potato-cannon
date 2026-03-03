@@ -21,14 +21,16 @@ features:
 oauth_config:
   scopes:
     bot:
-      - chat:write        # Post messages
-      - im:history         # Read DM message history (for threaded replies)
-      - im:write           # Open DM conversations
+      - chat:write           # Post messages
+      - channels:history     # Read channel message history (for threaded replies)
+      - channels:read        # Auto-discover channels the bot is in
+      - im:history           # Read DM message history (for threaded replies)
 
 settings:
   event_subscriptions:
     bot_events:
-      - message.im          # Receive DM messages (required for user responses)
+      - message.channels     # Receive channel messages (primary)
+      - message.im           # Receive DM messages (threaded replies may arrive as DMs)
   interactivity:
     is_enabled: false
   org_deploy_enabled: false

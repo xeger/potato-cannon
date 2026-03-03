@@ -15,7 +15,7 @@ import { scanAllChatThreads } from "../../stores/chat-threads.store.js";
 interface SlackThreadMetadata {
   channel: string;
   thread_ts: string;
-  userId: string;
+  userId?: string;
   [key: string]: unknown;
 }
 
@@ -32,13 +32,13 @@ export class SlackProvider implements ChatProvider {
   private socket!: SlackSocket;
   private responseCallback: ResponseCallback | null = null;
   private threadCache: Map<string, ProviderThreadInfo> = new Map();
-  private knownUserId: string | null = null;
+  private channelId: string | null = null;
 
   // Overridable for testing
   private scanThreadsFn: typeof scanAllChatThreads = scanAllChatThreads;
 
   /**
-   * Create API client, create Socket (but don't connect), load thread cache.
+   * Create API client, create Socket (but don't connect), resolve channel, load thread cache.
    */
   async initialize(config: SlackConfig): Promise<void> {
     const { SlackApi: SlackApiClass } = await import("./slack.api.js");
@@ -48,6 +48,27 @@ export class SlackProvider implements ChatProvider {
     this.socket = new SlackSocketClass(config.appToken, (event) =>
       this.handleEvent(event),
     );
+
+    // Resolve channel: explicit config > auto-discovery
+    if (config.channelId) {
+      this.channelId = config.channelId;
+      console.log(`[SlackProvider] Using configured channel: ${config.channelId}`);
+    } else {
+      try {
+        const discovered = await this.api.discoverChannel();
+        if (discovered) {
+          this.channelId = discovered.id;
+          console.log(`[SlackProvider] Auto-discovered channel: #${discovered.name} (${discovered.id})`);
+        } else {
+          console.warn("[SlackProvider] No channel found — bot will be mute until added to a channel");
+        }
+      } catch (err) {
+        console.warn(
+          `[SlackProvider] Channel auto-discovery failed: ${(err as Error).message}. ` +
+          `Set channelId in config or add the channels:read scope and reinstall the Slack app.`
+        );
+      }
+    }
 
     await this.loadThreadCache();
   }
@@ -74,35 +95,33 @@ export class SlackProvider implements ChatProvider {
   }
 
   /**
-   * Create a DM thread for a ticket/brainstorm.
-   * Throws if knownUserId is null (user hasn't DM'd the bot yet).
+   * Create a thread in the bot's channel for a ticket/brainstorm.
+   * Throws if no channel has been resolved.
    */
   async createThread(
     context: ChatContext,
     title: string,
   ): Promise<ProviderThreadInfo> {
-    if (!this.knownUserId) {
+    if (!this.channelId) {
       throw new Error(
-        "Slack user ID unknown; waiting for first DM from user",
+        "Slack channel not resolved; add the bot to a channel or set channelId in config",
       );
     }
 
     const cacheKey = this.getContextKey(context);
-    const channel = await this.api.openConversation(this.knownUserId);
 
     const welcomeText = `*Potato Cannon*\n\nStarting work on: *${title}*\n\nI'll ask questions here as I work.`;
     const threadTs = await this.api.postMessage(
-      channel,
+      this.channelId,
       toSlackMrkdwn(welcomeText),
     );
 
     const thread: ProviderThreadInfo = {
       providerId: this.id,
-      threadId: channel,
+      threadId: this.channelId,
       metadata: {
-        channel,
+        channel: this.channelId,
         thread_ts: threadTs,
-        userId: this.knownUserId,
       } as SlackThreadMetadata,
     };
 
@@ -145,12 +164,6 @@ export class SlackProvider implements ChatProvider {
    * Handle an incoming Socket Mode message event.
    */
   private async handleEvent(event: SlackMessageEvent): Promise<void> {
-    // Learn user ID from any incoming DM
-    if (!this.knownUserId && event.user) {
-      this.knownUserId = event.user;
-      console.log(`[SlackProvider] Learned user ID: ${event.user}`);
-    }
-
     // If this is a threaded reply, try to route it
     if (event.thread_ts) {
       const context = this.findContextByThread(event.channel, event.thread_ts);
@@ -158,12 +171,11 @@ export class SlackProvider implements ChatProvider {
         await this.responseCallback(this.id, context, event.text);
       }
     }
-    // Top-level DMs without thread_ts are just user discovery — no action needed
+    // Top-level channel messages without thread_ts are ignored
   }
 
   /**
    * Scan all chat-threads.json files to rebuild the thread cache on restart.
-   * Also restores knownUserId from any existing Slack thread metadata.
    */
   private async loadThreadCache(): Promise<void> {
     const allThreads = await this.scanThreadsFn();
@@ -174,23 +186,12 @@ export class SlackProvider implements ChatProvider {
       if (slackThread) {
         this.threadCache.set(key, slackThread);
         count++;
-
-        // Restore knownUserId from thread metadata
-        const meta = slackThread.metadata as unknown as SlackThreadMetadata;
-        if (meta?.userId && !this.knownUserId) {
-          this.knownUserId = meta.userId;
-        }
       }
     }
 
     if (count > 0) {
       console.log(
         `[SlackProvider] Loaded ${count} thread(s) from chat-threads files`,
-      );
-    }
-    if (this.knownUserId) {
-      console.log(
-        `[SlackProvider] Restored known user ID: ${this.knownUserId}`,
       );
     }
   }
@@ -235,14 +236,14 @@ export class SlackProvider implements ChatProvider {
     this.scanThreadsFn = scanFn;
   }
 
-  /** @internal Set knownUserId for testing. */
-  _setKnownUserIdForTest(userId: string): void {
-    this.knownUserId = userId;
+  /** @internal Set channelId for testing. */
+  _setChannelIdForTest(channelId: string): void {
+    this.channelId = channelId;
   }
 
-  /** @internal Get knownUserId for testing. */
-  _getKnownUserIdForTest(): string | null {
-    return this.knownUserId;
+  /** @internal Get channelId for testing. */
+  _getChannelIdForTest(): string | null {
+    return this.channelId;
   }
 
   /** @internal Expose handleEvent for testing. */
