@@ -302,13 +302,22 @@ export class ChatService {
       });
     }
 
-    // Broadcast to providers (Telegram)
+    // Broadcast to providers (Telegram, Slack, etc.)
     const providers = this.getActiveProviders();
     if (providers.length > 0) {
       const message: OutboundMessage = { text: question, options, phase };
-      await Promise.allSettled(
+      const results = await Promise.allSettled(
         providers.map((p) => this.sendToProvider(p, context, message)),
       );
+      for (let i = 0; i < results.length; i++) {
+        const r = results[i];
+        if (r.status === "rejected") {
+          console.warn(
+            `[ChatService] Failed to send question via ${providers[i].id}:`,
+            r.reason,
+          );
+        }
+      }
     }
 
     // Return immediately - don't wait for response
@@ -354,9 +363,18 @@ export class ChatService {
 
     const outbound: OutboundMessage = { text: message };
 
-    await Promise.allSettled(
+    const results = await Promise.allSettled(
       providers.map((p) => this.sendToProvider(p, context, outbound)),
     );
+    for (let i = 0; i < results.length; i++) {
+      const r = results[i];
+      if (r.status === "rejected") {
+        console.warn(
+          `[ChatService] Failed to send notification via ${providers[i].id}:`,
+          r.reason,
+        );
+      }
+    }
   }
 
   async handleResponse(
