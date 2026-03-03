@@ -15,7 +15,7 @@ export class SlackApi {
    */
   async discoverChannel(): Promise<{ id: string; name: string } | null> {
     // Identify the bot user so we can query its channel memberships
-    const auth = await this.client.auth.test();
+    const auth = await this.client.auth.test({});
 
     const result = await this.client.users.conversations({
       user: auth.user_id,
