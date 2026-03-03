@@ -446,12 +446,15 @@ export class ChatService {
     context: ChatContext,
     message: OutboundMessage,
   ): Promise<void> {
+    const contextId = context.ticketId || context.brainstormId || "unknown";
     let thread = await getProviderThread(context, provider.id);
 
     if (!thread) {
       const title = context.ticketId || context.brainstormId || "Chat";
+      console.log(`[ChatService] Creating ${provider.id} thread for ${contextId}`);
       thread = await provider.createThread(context, title);
       await setProviderThread(context, thread);
+      console.log(`[ChatService] Created ${provider.id} thread for ${contextId}`);
     }
 
     // Degrade buttons to numbered text if provider doesn't support them
@@ -468,6 +471,7 @@ export class ChatService {
     }
 
     await provider.send(thread, finalMessage);
+    console.log(`[ChatService] Sent message via ${provider.id} for ${contextId}`);
   }
 
   private mapNumberedResponse(contextKey: string, answer: string): string {
