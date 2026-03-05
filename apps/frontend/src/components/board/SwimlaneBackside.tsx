@@ -2,7 +2,7 @@ import { useState, useCallback, useEffect, useRef } from 'react'
 import { createPortal } from 'react-dom'
 import { Settings2, Bot } from 'lucide-react'
 import { SwimlaneColorPicker } from './SwimlaneColorPicker'
-import { WorkerTree } from './WorkerTree'
+import { WorkerTree, useHasAnswerBot } from './WorkerTree'
 import { AgentPromptEditor } from './AgentPromptEditor'
 
 interface SwimlaneBacksideProps {
@@ -32,6 +32,7 @@ export function SwimlaneBackside({
   } | null>(null)
 
   const supportsWip = !['Ideas', 'Blocked', 'Done'].includes(phase)
+  const hasAnswerBot = useHasAnswerBot(projectId, phase)
 
   // Local state for WIP input to avoid reset on every keystroke
   const [localWip, setLocalWip] = useState<string>(wipLimit != null ? String(wipLimit) : '')
@@ -123,10 +124,9 @@ export function SwimlaneBackside({
             </div>
           )}
 
-          {/* Worker tree */}
+          {/* Worker tree (excludes answerBot) */}
           <div className="space-y-3">
             <label className="flex items-center gap-2 text-xs text-text-muted uppercase tracking-wider">
-              <Bot className="h-3 w-3" />
               Phase Workers
             </label>
             <div className="p-3 rounded-lg bg-bg-tertiary/50 border border-border">
@@ -134,9 +134,32 @@ export function SwimlaneBackside({
                 projectId={projectId}
                 phase={phase}
                 onAgentClick={handleAgentClick}
+                filter={(w) => w.type !== 'answerBot'}
+                emptyMessage="No workers configured for this phase"
               />
             </div>
           </div>
+
+          {/* Answer Bot (separate section) */}
+          {hasAnswerBot && (
+            <div className="space-y-3">
+              <label className="flex items-center gap-2 text-xs text-text-muted uppercase tracking-wider">
+                <Bot className="h-3 w-3" />
+                Answer Bot
+              </label>
+              <p className="text-[11px] text-text-muted -mt-1">
+                Runs automatically to answer questions when automation is enabled.
+              </p>
+              <div className="p-3 rounded-lg bg-bg-tertiary/50 border border-border">
+                <WorkerTree
+                  projectId={projectId}
+                  phase={phase}
+                  onAgentClick={handleAgentClick}
+                  filter={(w) => w.type === 'answerBot'}
+                />
+              </div>
+            </div>
+          )}
         </div>
       </div>
 
