@@ -826,10 +826,6 @@ button, a, [role="button"] {
   }
 }
 
-/* Automated column golden border */
-.automated-shimmer {
-  border: 1px solid color-mix(in srgb, var(--color-accent-yellow) 35%, transparent);
-}
 
 /* ================================================
    ELECTRON TITLE BAR
