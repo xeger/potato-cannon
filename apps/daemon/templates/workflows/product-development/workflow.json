@@ -2,7 +2,7 @@
   "$schema": "./workflow.schema.json",
   "name": "product-development",
   "description": "Standard product development workflow with refinement, architecture, and build phases",
-  "version": "1.4.0",
+  "version": "1.5.1",
   "phases": [
     {
       "id": "Refinement",
@@ -36,7 +36,7 @@
           "type": "answerBot",
           "source": "agents/answer-bot.md",
           "description": "Answers questions about the refinement process",
-          "model": "opus"
+          "model": "haiku"
         }
       ],
       "transitions": {
