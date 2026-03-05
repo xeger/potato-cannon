@@ -88,6 +88,7 @@ Tool definitions and handlers live in `src/mcp/tools/`:
 - `task.tools.ts` - get_task, create_task, update_task_status, add_comment_to_task
 - `artifact.tools.ts` - list_artifacts, get_artifact
 - `ralph.tools.ts` - ralph_loop_dock
+- `answer.tools.ts` - answer_question
 - `index.ts` - exports allTools and allHandlers
 
 The daemon imports these directly. The proxy just forwards calls.
@@ -139,6 +140,18 @@ Tasks are stored at `~/.potato-cannon/tickets/{projectId}/{ticketId}/tasks/{phas
 | `feedback` | If rejected | Explanation of why work was rejected |
 
 If `ralph_loop_dock` is not called, the system falls back to exit code behavior (exit 0 = approved).
+
+### Answer Tools
+
+| Tool | Description |
+| ---- | ----------- |
+| `answer_question` | Submit answer to pending question (used by answer bot agents) |
+
+#### answer_question Parameters
+
+| Parameter | Required | Description |
+|-----------|----------|-------------|
+| `answer` | Yes | The answer text to submit |
 
 ## Error Handling
 
