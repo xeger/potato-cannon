@@ -66,10 +66,10 @@ export const api = {
       body: JSON.stringify(updates)
     }),
 
-  toggleDisabledPhase: (projectId: string, phaseId: string, disabled: boolean) =>
-    request<Project>(`/api/projects/${encodeURIComponent(projectId)}/disabled-phases`, {
+  toggleAutomatedPhase: (projectId: string, phaseId: string, automated: boolean) =>
+    request<Project>(`/api/projects/${encodeURIComponent(projectId)}/automated-phases`, {
       method: 'PATCH',
-      body: JSON.stringify({ phaseId, disabled })
+      body: JSON.stringify({ phaseId, automated })
     }),
 
   // ============ Folders ============
