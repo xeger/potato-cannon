@@ -29,6 +29,7 @@ import type { Project } from "../../types/config.types.js";
 import type { TicketPhase } from "../../types/ticket.types.js";
 import { resolveTargetPhase, getPhaseConfig } from "../../services/session/phase-config.js";
 import { getWipStatus } from "../../services/session/wip.js";
+import { chatService } from "../../services/chat.service.js";
 
 const upload = multer({
   storage: multer.memoryStorage(),
@@ -489,6 +490,61 @@ export function registerTicketRoutes(
             } catch (err) {
               console.error(`[input] Failed to resume suspended ticket: ${(err as Error).message}`);
               // Fall through — response is already written, blocking session may pick it up
+            }
+          }
+        }
+
+        res.json({ success: true });
+      } catch (error) {
+        res.status(500).json({ error: (error as Error).message });
+      }
+    },
+  );
+
+  // Answer bot submits answer to pending question
+  app.post(
+    "/api/tickets/:project/:id/answer-question",
+    async (req: Request, res: Response) => {
+      try {
+        const projectId = decodeURIComponent(req.params.project);
+        const ticketId = req.params.id;
+        const { answer } = req.body as { answer: string };
+
+        if (!answer) {
+          res.status(400).json({ error: "Missing answer" });
+          return;
+        }
+
+        const handled = await chatService.handleResponse(
+          "answer-bot",
+          { projectId, ticketId },
+          answer,
+        );
+
+        if (!handled) {
+          res.status(404).json({ error: "No pending question found" });
+          return;
+        }
+
+        // If no active session, resume the suspended ticket (same as /input)
+        const activeSession = getActiveSessionForTicket(ticketId);
+        if (!activeSession) {
+          const projects = getProjects();
+          const project = projects.get(projectId);
+
+          if (project) {
+            try {
+              const newSessionId = await sessionService.resumeSuspendedTicket(
+                projectId,
+                ticketId,
+                answer,
+              );
+              console.log(`[answer-question] Spawned resumed session ${newSessionId} for suspended ticket ${ticketId}`);
+              res.json({ success: true, sessionId: newSessionId, resumed: true });
+              return;
+            } catch (err) {
+              console.error(`[answer-question] Failed to resume suspended ticket: ${(err as Error).message}`);
+              // Fall through — response is already written via handleResponse
             }
           }
         }
