@@ -36,13 +36,14 @@ import {
   clearQuestion,
   cancelWaitForResponse,
 } from "../../stores/chat.store.js";
+import type { PendingQuestion } from "../../stores/chat.store.js";
 import type {
   SessionMeta,
   SessionInfo,
   SessionLogEntry,
 } from "../../types/session.types.js";
 import type { TicketPhase } from "../../types/ticket.types.js";
-import type { AgentWorker } from "../../types/template.types.js";
+import type { AgentWorker, AnswerBotWorker } from "../../types/template.types.js";
 import type { TaskContext } from "../../types/orchestration.types.js";
 
 import type { ActiveSession } from "./types.js";
@@ -920,6 +921,262 @@ export class SessionService {
   }
 
   /**
+   * Spawn an answer bot session to auto-respond to a pending question.
+   * This is a "fire and forget" session that does NOT feed back into the
+   * worker executor's state machine. The answer bot calls the answer_question
+   * MCP tool during execution, which submits the answer and resumes the
+   * original suspended session.
+   */
+  private async spawnAnswerBotWorker(
+    projectId: string,
+    ticketId: string,
+    phase: TicketPhase,
+    projectPath: string,
+    answerBotWorker: AnswerBotWorker,
+    pendingQuestion: PendingQuestion,
+  ): Promise<void> {
+    console.log(`[spawnAnswerBotWorker] Spawning ${answerBotWorker.source} for ticket ${ticketId}`);
+
+    // Load agent definition (supports .override.md)
+    const agentDefinition = await tryLoadAgentDefinition(
+      projectId,
+      answerBotWorker.source,
+    );
+
+    if (!agentDefinition) {
+      console.error(`[spawnAnswerBotWorker] Could not load agent: ${answerBotWorker.source}`);
+      return; // Fall back to human answering
+    }
+
+    // Build prompt with question context
+    const questionContext = [
+      "## Pending Question",
+      "",
+      `**Question:** ${pendingQuestion.question}`,
+      "",
+      pendingQuestion.options
+        ? `**Options:**\n${pendingQuestion.options.map((o, i) => `${i + 1}. ${o}`).join("\n")}`
+        : "*Free-form response expected*",
+    ].join("\n");
+
+    const fullPrompt = `${agentDefinition.prompt}\n\n${questionContext}`;
+
+    // Resolve model
+    const resolvedModel = resolveModel(answerBotWorker.model);
+
+    // Create session record in database
+    const storedSession = createStoredSession({
+      projectId,
+      ticketId,
+      agentSource: answerBotWorker.source,
+      phase,
+    });
+    const sessionId = storedSession.id;
+
+    const meta: SessionMeta = {
+      projectId,
+      ticketId,
+      phase,
+      worktreePath: projectPath,
+      startedAt: new Date().toISOString(),
+      status: "running",
+      agentType: answerBotWorker.source,
+      stage: 0,
+    };
+
+    // Save prompt for debugging (non-blocking)
+    savePrompt(projectId, ticketId, answerBotWorker.source, phase, 0, fullPrompt).catch(
+      (err) =>
+        console.error(
+          `[spawnAnswerBotWorker] Failed to save prompt: ${err.message}`,
+        ),
+    );
+
+    logToDaemon(projectId, ticketId, `Spawning answer bot session ${sessionId}`, {
+      agentType: answerBotWorker.source,
+      phase,
+      model: resolvedModel || "default",
+    }).catch(() => {});
+
+    const logPath = this.getSessionLogPath(sessionId);
+    const logStream = createWriteStream(logPath, { flags: "a" });
+
+    logStream.write(
+      JSON.stringify({
+        type: "session_start",
+        meta,
+        timestamp: new Date().toISOString(),
+      }) + "\n",
+    );
+
+    // Get path to compiled MCP proxy (dist/mcp/proxy.js)
+    const mcpProxyPath = path.join(__dirname, "..", "..", "mcp", "proxy.js");
+
+    // Get full path to node
+    let nodePath: string;
+    try {
+      nodePath = execSync("which node", { encoding: "utf-8" }).trim();
+    } catch {
+      const fallbacks = [
+        path.join(process.env.HOME || "", ".nvm", "versions", "node", "v22.14.0", "bin", "node"),
+        path.join(process.env.HOME || "", ".local", "bin", "node"),
+        "/usr/local/bin/node",
+      ];
+      nodePath = fallbacks.find((p) => existsSync(p)) || "node";
+    }
+
+    const mcpConfig = {
+      mcpServers: {
+        "potato-cannon": {
+          command: nodePath,
+          args: [mcpProxyPath],
+          env: {
+            POTATO_PROJECT_ID: projectId,
+            POTATO_TICKET_ID: ticketId,
+            POTATO_BRAINSTORM_ID: "",
+          },
+        },
+      },
+    };
+
+    const args = [
+      "--dangerously-skip-permissions",
+      "--output-format",
+      "stream-json",
+      "--verbose",
+    ];
+
+    if (resolvedModel) {
+      args.push("--model", resolvedModel);
+    }
+
+    args.push("--mcp-config", JSON.stringify(mcpConfig));
+
+    const disallowed = ["Skill(superpowers:*)"];
+    args.push("--disallowedTools", disallowed.join(","));
+
+    args.push("--print", fullPrompt);
+
+    let claudePath: string;
+    try {
+      claudePath = execSync("which claude", { encoding: "utf-8" }).trim();
+    } catch {
+      claudePath = path.join(process.env.HOME || "", ".local", "bin", "claude");
+    }
+
+    console.log(`[spawnAnswerBotWorker] Spawning answer bot at: ${claudePath}`);
+
+    const proc = pty.spawn(claudePath, args, {
+      name: "xterm-256color",
+      cols: 120,
+      rows: 40,
+      cwd: projectPath,
+      env: {
+        ...process.env,
+        POTATO_PROJECT_ID: projectId,
+        POTATO_TICKET_ID: ticketId,
+        POTATO_BRAINSTORM_ID: "",
+      },
+    });
+
+    console.log(`[spawnAnswerBotWorker] Answer bot PTY spawned, pid: ${proc.pid}`);
+
+    let exitResolver!: () => void;
+    const exitPromise = new Promise<void>((resolve) => {
+      exitResolver = resolve;
+    });
+
+    this.sessions.set(sessionId, {
+      process: proc,
+      meta,
+      logStream,
+      exitPromise,
+      exitResolver,
+    });
+
+    this.eventEmitter.emit("session:started", { sessionId, ...meta });
+
+    let claudeSessionIdCaptured = false;
+
+    proc.onData((data: string) => {
+      const lines = data.split("\n").filter(Boolean);
+      for (const line of lines) {
+        try {
+          const event = JSON.parse(line);
+          const logEntry = { ...event, timestamp: new Date().toISOString() };
+          logStream.write(JSON.stringify(logEntry) + "\n");
+          this.eventEmitter.emit("session:output", {
+            sessionId,
+            ...meta,
+            event: logEntry,
+          });
+
+          if (
+            !claudeSessionIdCaptured &&
+            event.type === "system" &&
+            event.session_id
+          ) {
+            claudeSessionIdCaptured = true;
+            updateClaudeSessionId(sessionId, event.session_id);
+          }
+        } catch {
+          const logEntry = {
+            type: "raw",
+            content: line,
+            timestamp: new Date().toISOString(),
+          };
+          logStream.write(JSON.stringify(logEntry) + "\n");
+        }
+      }
+    });
+
+    proc.onExit(({ exitCode }) => {
+      // Answer bot session completed — no need to advance worker state.
+      // The answer_question MCP tool already submitted the answer via
+      // the /answer-question endpoint, which called chatService.handleResponse
+      // and resumed the suspended ticket.
+      console.log(
+        `[spawnAnswerBotWorker] Answer bot session ${sessionId} exited with code ${exitCode}`,
+      );
+
+      logToDaemon(projectId, ticketId, `Answer bot session ${sessionId} exited`, {
+        agentType: answerBotWorker.source,
+        exitCode,
+        phase,
+      }).catch(() => {});
+
+      const endMeta: SessionMeta = {
+        ...meta,
+        status: exitCode === 0 ? "completed" : "failed",
+        exitCode,
+        endedAt: new Date().toISOString(),
+      };
+
+      logStream.write(
+        JSON.stringify({
+          type: "session_end",
+          meta: endMeta,
+          timestamp: new Date().toISOString(),
+        }) + "\n",
+      );
+      logStream.end();
+
+      const session = this.sessions.get(sessionId);
+      if (session?.exitResolver) {
+        session.exitResolver();
+      }
+
+      this.sessions.delete(sessionId);
+      endStoredSession(sessionId, exitCode);
+      this.eventEmitter.emit("session:ended", { sessionId, ...endMeta });
+
+      // Intentionally NO handleAgentCompletion call here.
+      // The answer bot is fire-and-forget — it does not participate
+      // in the worker executor state machine.
+    });
+  }
+
+  /**
    * Resume a suspended ticket session after user responds.
    * Mirrors spawnForBrainstorm's resume pattern:
    * - Reads pending context for conversation injection
@@ -1029,6 +1286,7 @@ export class SessionService {
   private getExecutorCallbacks(): ExecutorCallbacks {
     return {
       spawnAgent: this.spawnAgentWorker.bind(this),
+      spawnAnswerBot: this.spawnAnswerBotWorker.bind(this),
       onPhaseComplete: this.handlePhaseTransition.bind(this),
       onTicketBlocked: this.handleTicketBlocked.bind(this),
     };
