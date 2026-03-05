@@ -41,8 +41,8 @@ export interface Project {
     name: string;
     version: string; // Semver format "1.0.0"
   };
-  disabledPhases?: string[];           // array of phase names that are disabled
-  disabledPhaseMigration?: boolean;    // true while migration is in progress
+  automatedPhases?: string[];           // array of phase names that are automated
+  automatedPhaseMigration?: boolean;    // true while migration is in progress
   swimlaneColors?: Record<string, string>;  // phase name -> hex color
   wipLimits?: Record<string, number>;
   branchPrefix?: string;  // Custom branch prefix (default: 'potato')

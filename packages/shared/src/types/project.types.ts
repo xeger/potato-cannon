@@ -9,8 +9,8 @@ export interface Project {
     name: string
     version: number
   }
-  disabledPhases?: string[]
-  disabledPhaseMigration?: boolean
+  automatedPhases?: string[]
+  automatedPhaseMigration?: boolean
   swimlaneColors?: Record<string, string>
   wipLimits?: Record<string, number>
   branchPrefix?: string
