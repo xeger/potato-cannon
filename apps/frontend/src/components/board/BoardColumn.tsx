@@ -152,6 +152,13 @@ export function BoardColumn({
             </div>
           </div>
 
+          {/* Automated banner */}
+          {isAutomated && (
+            <div className="px-3 py-1.5 bg-[var(--color-accent-yellow)]/10 border-b border-[var(--color-accent-yellow)]/20 text-center">
+              <span className="text-[11px] font-medium text-[var(--color-accent-yellow)]">Currently Automated</span>
+            </div>
+          )}
+
           {/* Drop Zone / Tickets Container */}
           <div
             ref={setNodeRef}
