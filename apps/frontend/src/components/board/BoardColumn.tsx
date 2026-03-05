@@ -18,10 +18,10 @@ interface BoardColumnProps {
   tickets: Ticket[]
   projectId: string
   showAddTicket?: boolean
-  isManualPhase?: boolean
-  isDisabled?: boolean
+  canAutomate?: boolean
+  isAutomated?: boolean
   isMigrating?: boolean
-  onToggleDisabled?: () => void
+  onToggleAutomated?: () => void
   swimlaneColor?: string
   onColorChange?: (color: string | null) => void
   wipLimit?: number
@@ -33,10 +33,10 @@ export function BoardColumn({
   tickets,
   projectId,
   showAddTicket,
-  isManualPhase,
-  isDisabled,
+  canAutomate,
+  isAutomated,
   isMigrating,
-  onToggleDisabled,
+  onToggleAutomated,
   swimlaneColor,
   onColorChange,
   wipLimit,
@@ -57,8 +57,8 @@ export function BoardColumn({
   // Determine tooltip text
   const getTooltipText = () => {
     if (isMigrating) return 'Migration in progress...'
-    if (isDisabled) return 'Enable checkpoint - items will stop here'
-    return 'Skip checkpoint - items will pass through automatically'
+    if (isAutomated) return 'Disable automation - items will stop here'
+    return 'Enable automation - items will be processed automatically'
   }
 
   const handleColorChange = (color: string | null) => {
@@ -74,7 +74,7 @@ export function BoardColumn({
     <div
       className={cn(
         'swimlane-flip-container flex-shrink-0 w-[280px] md:w-[320px] h-full group',
-        isDisabled && 'opacity-50'
+        isAutomated && 'opacity-50'
       )}
     >
       {/* Inner wrapper that rotates */}
@@ -120,19 +120,19 @@ export function BoardColumn({
                   <Archive className="h-4 w-4" />
                 </IconButton>
               )}
-              {isManualPhase && onToggleDisabled && (
+              {canAutomate && onToggleAutomated && (
                 <Tooltip>
                   <TooltipTrigger asChild>
                     <IconButton
                       tooltip=""
-                      onClick={onToggleDisabled}
+                      onClick={onToggleAutomated}
                       disabled={isMigrating}
                       className={cn(isMigrating && 'cursor-not-allowed opacity-50')}
                     >
-                      {isDisabled ? (
-                        <ToggleLeft className="h-4 w-4 text-text-muted" />
-                      ) : (
+                      {isAutomated ? (
                         <ToggleRight className="h-4 w-4 text-accent" />
+                      ) : (
+                        <ToggleLeft className="h-4 w-4 text-text-muted" />
                       )}
                     </IconButton>
                   </TooltipTrigger>

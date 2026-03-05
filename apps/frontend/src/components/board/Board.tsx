@@ -51,28 +51,35 @@ function phaseHasAutomation(phaseConfig: TemplatePhase | undefined): boolean {
 }
 
 /**
- * Checks if a phase is a manual checkpoint (eligible for toggle).
- * A phase is manual if it has transitions.manual: true and no automation.
+ * Checks if a phase can be automated (eligible for toggle).
+ * A phase can be automated if it's either:
+ * - A manual checkpoint (transitions.manual: true with no automation), or
+ * - A phase with an answerBot worker
+ * First and last phases cannot be automated.
  */
-function isManualCheckpoint(
+function canAutomate(
   phaseConfig: TemplatePhase | undefined,
   phaseName: string,
   allPhases: string[]
 ): boolean {
-  // First and last phases (Ideas, Done) cannot be disabled
+  // First and last phases cannot be automated
   if (allPhases.length > 0) {
-    if (phaseName === allPhases[0] || phaseName === allPhases[allPhases.length - 1]) {
-      return false
-    }
+    if (phaseName === allPhases[0] || phaseName === allPhases[allPhases.length - 1]) return false
   }
 
   if (!phaseConfig) return false
 
-  // Must have manual: true in transitions
-  if (!phaseConfig.transitions?.manual) return false
+  // Manual checkpoint phases can be automated (pass through)
+  if (phaseConfig.transitions?.manual && !phaseHasAutomation(phaseConfig)) {
+    return true
+  }
 
-  // Must NOT have automation
-  return !phaseHasAutomation(phaseConfig)
+  // Phases with an answerBot can be automated
+  if (phaseConfig.workers?.some(w => w.type === 'answerBot')) {
+    return true
+  }
+
+  return false
 }
 
 interface BoardProps {
@@ -102,16 +109,16 @@ export function Board({ projectId }: BoardProps) {
   const boardViewMode = useAppStore((s) => s.boardViewMode)
   const showArchivedTickets = useAppStore((s) => s.showArchivedTickets)
 
-  const handleToggleDisabled = useCallback(
+  const handleToggleAutomated = useCallback(
     (phaseName: string) => {
       if (!currentProject) return
 
-      const isCurrentlyDisabled = currentProject.disabledPhases?.includes(phaseName) ?? false
+      const isCurrentlyAutomated = currentProject.automatedPhases?.includes(phaseName) ?? false
 
       toggleAutomatedPhase.mutate({
         projectId,
         phaseId: phaseName,
-        automated: !isCurrentlyDisabled
+        automated: !isCurrentlyAutomated
       })
     },
     [projectId, currentProject, toggleAutomatedPhase]
@@ -368,9 +375,9 @@ export function Board({ projectId }: BoardProps) {
 
                 {phases?.map((phase) => {
                   const phaseConfig = templateConfig?.phases.find((p) => p.name === phase)
-                  const isManual = isManualCheckpoint(phaseConfig, phase, phases)
-                  const isDisabled = currentProject?.disabledPhases?.includes(phase) ?? false
-                  const isMigrating = currentProject?.disabledPhaseMigration ?? false
+                  const canAutomatePhase = canAutomate(phaseConfig, phase, phases)
+                  const isAutomated = currentProject?.automatedPhases?.includes(phase) ?? false
+                  const isMigrating = currentProject?.automatedPhaseMigration ?? false
 
                   return (
                     <BoardColumn
@@ -379,10 +386,10 @@ export function Board({ projectId }: BoardProps) {
                       tickets={ticketsByPhase[phase] || []}
                       projectId={projectId}
                       showAddTicket={phase === phases?.[0]}
-                      isManualPhase={isManual}
-                      isDisabled={isDisabled}
+                      canAutomate={canAutomatePhase}
+                      isAutomated={isAutomated}
                       isMigrating={isMigrating}
-                      onToggleDisabled={isManual ? () => handleToggleDisabled(phase) : undefined}
+                      onToggleAutomated={canAutomatePhase ? () => handleToggleAutomated(phase) : undefined}
                       swimlaneColor={currentProject?.swimlaneColors?.[phase]}
                       onColorChange={(color) => handleSwimlaneColorChange(phase, color)}
                       wipLimit={currentProject?.wipLimits?.[phase]}
