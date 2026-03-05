@@ -4,14 +4,14 @@ import { getTemplateWithFullPhasesForProject } from '../../stores/template.store
 import { hasProjectTemplate, copyTemplateToProject } from '../../stores/project-template.store.js';
 
 /**
- * Check if a phase is disabled for a project.
+ * Check if a phase is automated for a project.
  */
-export async function isPhaseDisabled(
+export async function isPhaseAutomated(
   projectId: string,
   phaseName: string
 ): Promise<boolean> {
   const project = await getProjectById(projectId);
-  return project?.disabledPhases?.includes(phaseName) ?? false;
+  return project?.automatedPhases?.includes(phaseName) ?? false;
 }
 
 /**
@@ -59,10 +59,10 @@ export async function getNextPhase(
 }
 
 /**
- * Resolve the actual target phase, skipping any disabled phases.
- * Returns the first enabled phase starting from the requested phase.
- * If the requested phase is enabled, returns it unchanged.
- * If all subsequent phases are disabled, returns the last phase (Done).
+ * Resolve the actual target phase, skipping any automated phases.
+ * Returns the first non-automated phase starting from the requested phase.
+ * If the requested phase is not automated, returns it unchanged.
+ * If all subsequent phases are automated, returns the last phase (Done).
  */
 export async function resolveTargetPhase(
   projectId: string,
@@ -85,22 +85,22 @@ export async function resolveTargetPhase(
     return requestedPhase; // Phase not found, return as-is
   }
 
-  // Find first enabled phase starting from requestedPhase
+  // Find first non-automated phase starting from requestedPhase
   for (let i = startIndex; i < phases.length; i++) {
     const phase = phases[i];
-    const isDisabled = project.disabledPhases?.includes(phase.name) ?? false;
-    if (!isDisabled) {
+    const isAutomated = project.automatedPhases?.includes(phase.name) ?? false;
+    if (!isAutomated) {
       return phase.name;
     }
   }
 
-  // All remaining phases disabled - return last phase (Done)
+  // All remaining phases automated - return last phase (Done)
   return phases[phases.length - 1].name;
 }
 
 /**
  * Get the next enabled phase after completing the current one.
- * Used by completePhase() to skip disabled phases.
+ * Used by completePhase() to skip automated phases.
  */
 export async function getNextEnabledPhase(
   projectId: string,
