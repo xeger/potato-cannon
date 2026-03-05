@@ -953,7 +953,7 @@ export class SessionService {
     const questionContext = [
       "## Pending Question",
       "",
-      `**Question:** ${pendingQuestion.text}`,
+      `**Question:** ${pendingQuestion.question}`,
       "",
       options
         ? `**Options:**\n${options.map((o: string, i: number) => `${i + 1}. ${o}`).join("\n")}`
