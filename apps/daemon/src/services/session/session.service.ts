@@ -1097,8 +1097,6 @@ export class SessionService {
 
     this.eventEmitter.emit("session:started", { sessionId, ...meta });
 
-    let claudeSessionIdCaptured = false;
-
     proc.onData((data: string) => {
       const lines = data.split("\n").filter(Boolean);
       for (const line of lines) {
@@ -1112,14 +1110,9 @@ export class SessionService {
             event: logEntry,
           });
 
-          if (
-            !claudeSessionIdCaptured &&
-            event.type === "system" &&
-            event.session_id
-          ) {
-            claudeSessionIdCaptured = true;
-            updateClaudeSessionId(sessionId, event.session_id);
-          }
+          // Intentionally do NOT capture claude_session_id for answerBot sessions.
+          // getLatestClaudeSessionIdForTicket must return the original agent's ID
+          // so that --resume targets the correct session.
         } catch {
           const logEntry = {
             type: "raw",
