@@ -28,6 +28,7 @@ export interface UpdateTicketInput {
   description?: string;
   phase?: TicketPhase;
   sessionId?: string;
+  pendingPhase?: string | null;
 }
 
 export type ArtifactType =

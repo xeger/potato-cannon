@@ -12,6 +12,7 @@ export interface Project {
   disabledPhases?: string[]
   disabledPhaseMigration?: boolean
   swimlaneColors?: Record<string, string>
+  wipLimits?: Record<string, number>
   branchPrefix?: string
   folderId?: string | null
 }

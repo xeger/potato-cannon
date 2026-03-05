@@ -11,6 +11,7 @@ export interface Ticket {
   archived?: boolean
   archivedAt?: string
   conversationId?: string
+  pendingPhase?: string
 }
 
 export interface ArchiveResult {
