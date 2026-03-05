@@ -24,6 +24,8 @@ interface BoardColumnProps {
   onToggleDisabled?: () => void
   swimlaneColor?: string
   onColorChange?: (color: string | null) => void
+  wipLimit?: number
+  onWipLimitChange?: (limit: number | null) => void
 }
 
 export function BoardColumn({
@@ -36,7 +38,9 @@ export function BoardColumn({
   isMigrating,
   onToggleDisabled,
   swimlaneColor,
-  onColorChange
+  onColorChange,
+  wipLimit,
+  onWipLimitChange
 }: BoardColumnProps) {
   const openAddTicketModal = useAppStore((s) => s.openAddTicketModal)
   const showArchivedTickets = useAppStore((s) => s.showArchivedTickets)
@@ -81,11 +85,29 @@ export function BoardColumn({
           style={columnBackgroundStyle}
         >
           {/* Column Header */}
-          <div className="flex items-center justify-between p-3 border-b border-border">
+          <div
+            className={cn(
+              'flex items-center justify-between p-3 border-b border-border transition-colors',
+              wipLimit !== undefined && tickets.length > wipLimit
+                ? 'bg-red-500/5'
+                : wipLimit !== undefined && tickets.length === wipLimit
+                  ? 'bg-amber-500/5'
+                  : ''
+            )}
+          >
             <h3 className="text-text-secondary font-semibold text-[13px]">{phase}</h3>
             <div className="flex items-center gap-2">
-              <span className="text-text-muted text-xs bg-bg-tertiary px-2 py-0.5 rounded-[10px]">
-                {tickets.length}
+              <span
+                className={cn(
+                  'text-xs px-2 py-0.5 rounded-[10px]',
+                  wipLimit !== undefined && tickets.length > wipLimit
+                    ? 'bg-red-500/20 text-red-400'
+                    : wipLimit !== undefined && tickets.length >= wipLimit
+                      ? 'bg-amber-500/20 text-amber-400'
+                      : 'text-text-muted bg-bg-tertiary'
+                )}
+              >
+                {wipLimit !== undefined ? `${tickets.length}/${wipLimit}` : tickets.length}
               </span>
               {phase === 'Done' && (
                 <IconButton
@@ -133,7 +155,8 @@ export function BoardColumn({
             className={cn(
               'swimlane-tickets-fade flex-1 p-2 overflow-y-auto min-h-[100px] transition-colors',
               isOver && 'bg-accent/10',
-              isFlipped && 'fading'
+              isFlipped && 'fading',
+              wipLimit !== undefined && tickets.length >= wipLimit && 'opacity-75'
             )}
           >
             <div className="flex flex-col gap-2">
@@ -159,6 +182,8 @@ export function BoardColumn({
             phase={phase}
             currentColor={swimlaneColor}
             onColorChange={handleColorChange}
+            wipLimit={wipLimit}
+            onWipLimitChange={onWipLimitChange ?? (() => {})}
           />
         </div>
       </div>

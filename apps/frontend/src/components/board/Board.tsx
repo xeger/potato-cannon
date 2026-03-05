@@ -140,6 +140,30 @@ export function Board({ projectId }: BoardProps) {
     [projectId, currentProject, updateProject]
   )
 
+  const handleWipLimitChange = useCallback(
+    (phaseName: string, limit: number | null) => {
+      if (!currentProject) return
+
+      const currentLimits = currentProject.wipLimits || {}
+      let newLimits: Record<string, number>
+
+      if (limit === null) {
+        const { [phaseName]: _, ...rest } = currentLimits
+        newLimits = rest
+      } else {
+        newLimits = { ...currentLimits, [phaseName]: limit }
+      }
+
+      updateProject.mutate({
+        id: projectId,
+        updates: {
+          wipLimits: Object.keys(newLimits).length > 0 ? newLimits : undefined
+        }
+      })
+    },
+    [projectId, currentProject, updateProject]
+  )
+
   // Sensors for drag and drop - require 5px movement before activating drag
   // This allows clicks to work normally on ticket cards
   const sensors = useSensors(
@@ -315,6 +339,8 @@ export function Board({ projectId }: BoardProps) {
                       onToggleDisabled={isManual ? () => handleToggleDisabled(phase) : undefined}
                       swimlaneColor={currentProject?.swimlaneColors?.[phase]}
                       onColorChange={(color) => handleSwimlaneColorChange(phase, color)}
+                      wipLimit={currentProject?.wipLimits?.[phase]}
+                      onWipLimitChange={(limit) => handleWipLimitChange(phase, limit)}
                     />
                   )
                 })}

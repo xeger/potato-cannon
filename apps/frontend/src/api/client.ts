@@ -60,7 +60,7 @@ export const api = {
       method: 'DELETE'
     }),
 
-  updateProject: (id: string, updates: { displayName?: string; icon?: string; color?: string; swimlaneColors?: Record<string, string>; branchPrefix?: string; folderId?: string | null }) =>
+  updateProject: (id: string, updates: { displayName?: string; icon?: string; color?: string; swimlaneColors?: Record<string, string>; wipLimits?: Record<string, number>; branchPrefix?: string; folderId?: string | null }) =>
     request<Project>(`/api/projects/${encodeURIComponent(id)}`, {
       method: 'PATCH',
       body: JSON.stringify(updates)
@@ -112,7 +112,7 @@ export const api = {
       body: JSON.stringify({ title, description })
     }),
 
-  updateTicket: (projectId: string, ticketId: string, updates: Partial<Ticket>) =>
+  updateTicket: (projectId: string, ticketId: string, updates: Partial<Ticket> & { force?: boolean }) =>
     request<Ticket>(`/api/tickets/${encodeURIComponent(projectId)}/${ticketId}`, {
       method: 'PUT',
       body: JSON.stringify(updates)

@@ -26,7 +26,7 @@ export function useAddProject() {
 export function useUpdateProject() {
   const queryClient = useQueryClient()
   return useMutation({
-    mutationFn: ({ id, updates }: { id: string; updates: { displayName?: string; icon?: string; color?: string; swimlaneColors?: Record<string, string>; branchPrefix?: string; folderId?: string | null } }) =>
+    mutationFn: ({ id, updates }: { id: string; updates: { displayName?: string; icon?: string; color?: string; swimlaneColors?: Record<string, string>; wipLimits?: Record<string, number>; branchPrefix?: string; folderId?: string | null } }) =>
       api.updateProject(id, updates),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['projects'] })
@@ -149,7 +149,7 @@ export function useUpdateTicket() {
     }: {
       projectId: string
       ticketId: string
-      updates: Partial<Ticket>
+      updates: Partial<Ticket> & { force?: boolean }
     }) => api.updateTicket(projectId, ticketId, updates),
     onSuccess: (_, { projectId, ticketId }) => {
       queryClient.invalidateQueries({ queryKey: ['tickets', projectId] })

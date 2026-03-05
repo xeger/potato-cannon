@@ -10,6 +10,8 @@ interface SwimlaneBacksideProps {
   phase: string
   currentColor: string | undefined
   onColorChange: (color: string | null) => void
+  wipLimit: number | undefined
+  onWipLimitChange: (limit: number | null) => void
   disabled?: boolean
 }
 
@@ -18,6 +20,8 @@ export function SwimlaneBackside({
   phase,
   currentColor,
   onColorChange,
+  wipLimit,
+  onWipLimitChange,
   disabled
 }: SwimlaneBacksideProps) {
   // Agent editor state
@@ -26,6 +30,8 @@ export function SwimlaneBackside({
     agentName: string
     model?: string
   } | null>(null)
+
+  const supportsWip = !['Ideas', 'Blocked', 'Done'].includes(phase)
 
   const handleAgentClick = useCallback((agentType: string, agentName: string, model?: string) => {
     setSelectedAgent({ agentType, agentName, model })
@@ -59,6 +65,30 @@ export function SwimlaneBackside({
               disabled={disabled}
             />
           </div>
+
+          {/* WIP Limit setting */}
+          {supportsWip && (
+            <div className="space-y-3">
+              <label className="text-xs text-text-muted uppercase tracking-wider">
+                WIP Limit
+              </label>
+              <input
+                type="number"
+                min="1"
+                placeholder="No limit"
+                value={wipLimit ?? ''}
+                onChange={(e) => {
+                  const val = e.target.value
+                  onWipLimitChange(val ? Math.max(1, parseInt(val, 10)) : null)
+                }}
+                disabled={disabled}
+                className="w-full px-3 py-2 rounded-lg bg-bg-tertiary border border-border text-text-primary text-sm placeholder:text-text-muted focus:outline-none focus:ring-2 focus:ring-accent focus:border-transparent"
+              />
+              <p className="text-[11px] text-text-muted">
+                Max tickets in this column. Leave empty for no limit.
+              </p>
+            </div>
+          )}
 
           {/* Worker tree */}
           <div className="space-y-3">
