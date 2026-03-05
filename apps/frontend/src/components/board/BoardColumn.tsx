@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import { useDroppable } from '@dnd-kit/core'
-import { Archive, Plus, ToggleLeft, ToggleRight, Settings2, RotateCcw } from 'lucide-react'
+import { Archive, Plus, Bot, Settings2, RotateCcw } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { useAppStore } from '@/stores/appStore'
 import { IconButton } from '@/components/ui/icon-button'
@@ -57,8 +57,8 @@ export function BoardColumn({
   // Determine tooltip text
   const getTooltipText = () => {
     if (isMigrating) return 'Migration in progress...'
-    if (isAutomated) return 'Disable automation - items will stop here'
-    return 'Enable automation - items will be processed automatically'
+    if (isAutomated) return 'Automated'
+    return 'Enable automation'
   }
 
   const handleColorChange = (color: string | null) => {
@@ -74,7 +74,6 @@ export function BoardColumn({
     <div
       className={cn(
         'swimlane-flip-container flex-shrink-0 w-[280px] md:w-[320px] h-full group',
-        isAutomated && 'opacity-50'
       )}
     >
       {/* Inner wrapper that rotates */}
@@ -129,11 +128,10 @@ export function BoardColumn({
                       disabled={isMigrating}
                       className={cn(isMigrating && 'cursor-not-allowed opacity-50')}
                     >
-                      {isAutomated ? (
-                        <ToggleRight className="h-4 w-4 text-accent" />
-                      ) : (
-                        <ToggleLeft className="h-4 w-4 text-text-muted" />
-                      )}
+                      <Bot className={cn(
+                        "h-4 w-4",
+                        isAutomated ? "text-accent" : "text-text-muted"
+                      )} />
                     </IconButton>
                   </TooltipTrigger>
                   <TooltipContent side="bottom">
