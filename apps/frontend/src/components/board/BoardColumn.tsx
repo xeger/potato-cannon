@@ -82,7 +82,7 @@ export function BoardColumn({
         <div
           className={cn(
             "swimlane-front bg-bg-secondary rounded-lg flex flex-col",
-            isAutomated && "opacity-70"
+            isAutomated && "opacity-60"
           )}
           style={columnBackgroundStyle}
         >
