@@ -11,6 +11,7 @@ import { eventBus } from "../utils/event-bus.js";
 import { formatListenUrls } from "../utils/listen-urls.js";
 import { Logger } from "../utils/logger.js";
 import { SessionService } from "../services/session/index.js";
+import { setupWipDrainListener } from "../services/session/wip.js";
 import { chatService } from "../services/chat.service.js";
 import { TelegramProvider } from "../providers/telegram/telegram.provider.js";
 import { SlackProvider } from "../providers/slack/slack.provider.js";
@@ -467,6 +468,7 @@ export async function main(): Promise<void> {
   console.log(`Loaded ${projects.size} registered project(s)`);
 
   sessionService = new SessionService(eventBus as EventEmitter);
+  setupWipDrainListener(sessionService);
 
   // Session events - sessions are tracked in the sessions table by SessionService
   eventBus.on(

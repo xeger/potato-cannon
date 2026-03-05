@@ -28,6 +28,7 @@ import type { SessionService } from "../../services/session/index.js";
 import type { Project } from "../../types/config.types.js";
 import type { TicketPhase } from "../../types/ticket.types.js";
 import { resolveTargetPhase, getPhaseConfig } from "../../services/session/phase-config.js";
+import { getWipStatus } from "../../services/session/wip.js";
 
 const upload = multer({
   storage: multer.memoryStorage(),
@@ -101,28 +102,43 @@ export function registerTicketRoutes(
     try {
       const projectId = decodeURIComponent(req.params.project);
       const ticketId = req.params.id;
-      const updates = req.body as { phase?: TicketPhase; sessionId?: string };
+      const { force, ...ticketUpdates } = req.body as { phase?: TicketPhase; sessionId?: string; force?: boolean };
 
       const oldTicket = await getTicket(projectId, ticketId);
       const oldPhase = oldTicket.phase;
 
       // Resolve target phase if moving to a potentially disabled phase
-      let resolvedPhase = updates.phase;
-      if (updates.phase && updates.phase !== oldPhase) {
+      let resolvedPhase = ticketUpdates.phase;
+      if (ticketUpdates.phase && ticketUpdates.phase !== oldPhase) {
         resolvedPhase = (await resolveTargetPhase(
           projectId,
-          updates.phase,
+          ticketUpdates.phase,
         )) as TicketPhase;
-        if (resolvedPhase !== updates.phase) {
+        if (resolvedPhase !== ticketUpdates.phase) {
           console.log(
-            `[updateTicket] Phase ${updates.phase} is disabled, resolved to ${resolvedPhase}`,
+            `[updateTicket] Phase ${ticketUpdates.phase} is disabled, resolved to ${resolvedPhase}`,
           );
         }
       }
 
+      // Check WIP limit for manual moves
+      if (resolvedPhase && resolvedPhase !== oldPhase && !force) {
+        const wipStatus = getWipStatus(projectId, resolvedPhase);
+        if (wipStatus.atLimit) {
+          res.status(409).json({
+            error: "WIP limit reached",
+            phase: resolvedPhase,
+            current: wipStatus.current,
+            limit: wipStatus.limit,
+          });
+          return;
+        }
+      }
+
       const ticket = await updateTicket(projectId, ticketId, {
-        ...updates,
+        ...ticketUpdates,
         phase: resolvedPhase,
+        ...(resolvedPhase && resolvedPhase !== oldPhase ? { pendingPhase: null } : {}),
       });
 
       eventBus.emit("ticket:updated", { projectId, ticket });

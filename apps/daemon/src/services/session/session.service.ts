@@ -59,6 +59,7 @@ import {
 } from "./worker-executor.js";
 import { formatTaskContext } from "./loops/task-loop.js";
 import { getPendingVerdict } from "../../server/routes/ralph.routes.js";
+import { isPhaseAtWipLimit } from "./wip.js";
 
 export class SessionService {
   private sessions: Map<string, ActiveSession> = new Map();
@@ -1045,6 +1046,17 @@ export class SessionService {
     const nextPhase = await getNextEnabledPhase(projectId, completedPhase);
     if (!nextPhase) {
       console.log(`[handlePhaseTransition] No next phase after ${completedPhase}`);
+      return;
+    }
+
+    // Check WIP limit before advancing
+    if (isPhaseAtWipLimit(projectId, nextPhase)) {
+      await updateTicket(projectId, ticketId, { pendingPhase: nextPhase });
+      console.log(
+        `[handlePhaseTransition] WIP limit reached for ${nextPhase}, ticket ${ticketId} queued`
+      );
+      const queuedTicket = getTicket(projectId, ticketId);
+      eventBus.emit("ticket:updated", { projectId, ticket: queuedTicket });
       return;
     }
 
