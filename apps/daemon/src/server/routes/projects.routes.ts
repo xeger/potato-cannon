@@ -60,21 +60,21 @@ export function getProjects(): Map<string, Project> {
 }
 
 /**
- * Migrate tickets from a disabled phase to the next enabled phase.
+ * Migrate tickets from an automated phase to the next non-automated phase.
  * Tickets are moved sequentially. Automation is queued and spawned with delays.
  */
-async function migrateTicketsFromDisabledPhase(
+async function migrateTicketsFromAutomatedPhase(
   projectId: string,
-  disabledPhase: string,
+  automatedPhase: string,
   sessionService: SessionService,
 ): Promise<void> {
-  const tickets = await listTickets(projectId, { phase: disabledPhase as TicketPhase });
+  const tickets = await listTickets(projectId, { phase: automatedPhase as TicketPhase });
   if (tickets.length === 0) {
     return;
   }
 
   console.log(
-    `[migrateTicketsFromDisabledPhase] Migrating ${tickets.length} tickets from ${disabledPhase}`,
+    `[migrateTicketsFromAutomatedPhase] Migrating ${tickets.length} tickets from ${automatedPhase}`,
   );
 
   const project = getProjectById(projectId);
@@ -85,13 +85,13 @@ async function migrateTicketsFromDisabledPhase(
   // Move tickets sequentially
   for (const ticket of tickets) {
     try {
-      const targetPhase = await resolveTargetPhase(projectId, disabledPhase);
+      const targetPhase = await resolveTargetPhase(projectId, automatedPhase);
       await updateTicket(projectId, ticket.id, {
         phase: targetPhase as TicketPhase,
       });
 
       console.log(
-        `[migrateTicketsFromDisabledPhase] Moved ticket ${ticket.id} from ${disabledPhase} to ${targetPhase}`,
+        `[migrateTicketsFromAutomatedPhase] Moved ticket ${ticket.id} from ${automatedPhase} to ${targetPhase}`,
       );
 
       // Queue automation if target phase has it and ticket has no active session
@@ -106,7 +106,7 @@ async function migrateTicketsFromDisabledPhase(
       }
     } catch (error) {
       console.error(
-        `[migrateTicketsFromDisabledPhase] Failed to migrate ticket ${ticket.id}:`,
+        `[migrateTicketsFromAutomatedPhase] Failed to migrate ticket ${ticket.id}:`,
         error,
       );
       // Continue with other tickets
@@ -125,7 +125,7 @@ async function migrateTicketsFromDisabledPhase(
       await new Promise((resolve) => setTimeout(resolve, 500)); // 500ms delay between spawns
     } catch (error) {
       console.error(
-        `[migrateTicketsFromDisabledPhase] Failed to spawn automation for ${item.ticketId}:`,
+        `[migrateTicketsFromAutomatedPhase] Failed to spawn automation for ${item.ticketId}:`,
         error,
       );
     }
@@ -194,8 +194,8 @@ export function registerProjectRoutes(
         icon: p.icon,
         color: p.color,
         template: p.template,
-        disabledPhases: p.disabledPhases,
-        disabledPhaseMigration: p.disabledPhaseMigration,
+        automatedPhases: p.automatedPhases,
+        automatedPhaseMigration: p.automatedPhaseMigration,
         swimlaneColors: p.swimlaneColors,
         wipLimits: p.wipLimits,
         folderId: p.folderId,
@@ -312,15 +312,15 @@ export function registerProjectRoutes(
     }
   });
 
-  // PATCH /api/projects/:id/disabled-phases - Toggle phase disabled state
+  // PATCH /api/projects/:id/automated-phases - Toggle phase automated state
   app.patch(
-    "/api/projects/:id/disabled-phases",
+    "/api/projects/:id/automated-phases",
     async (req: Request, res: Response) => {
       try {
         const id = decodeURIComponent(req.params.id);
-        const { phaseId, disabled } = req.body as {
+        const { phaseId, automated } = req.body as {
           phaseId: string;
-          disabled: boolean;
+          automated: boolean;
         };
 
         const project = getProjectById(id);
@@ -330,7 +330,7 @@ export function registerProjectRoutes(
         }
 
         // Check for migration in progress
-        if (project.disabledPhaseMigration) {
+        if (project.automatedPhaseMigration) {
           res.status(409).json({ error: "Migration in progress, please wait" });
           return;
         }
@@ -347,27 +347,27 @@ export function registerProjectRoutes(
           }
         }
 
-        // Update disabledPhases array
-        const disabledPhases = project.disabledPhases ?? [];
-        const updated = disabled
-          ? [...new Set([...disabledPhases, phaseId])]
-          : disabledPhases.filter((p) => p !== phaseId);
+        // Update automatedPhases array
+        const automatedPhases = project.automatedPhases ?? [];
+        const updated = automated
+          ? [...new Set([...automatedPhases, phaseId])]
+          : automatedPhases.filter((p) => p !== phaseId);
 
-        // If disabling and phase has tickets, need to migrate them
-        if (disabled) {
+        // If automating and phase has tickets, need to migrate them
+        if (automated) {
           updateProject(id, {
-            disabledPhaseMigration: true,
-            disabledPhases: updated,
+            automatedPhaseMigration: true,
+            automatedPhases: updated,
           });
 
           try {
-            await migrateTicketsFromDisabledPhase(id, phaseId, sessionService);
+            await migrateTicketsFromAutomatedPhase(id, phaseId, sessionService);
           } finally {
             // Always clear migration flag, even on partial failure
-            updateProject(id, { disabledPhaseMigration: false });
+            updateProject(id, { automatedPhaseMigration: false });
           }
         } else {
-          updateProject(id, { disabledPhases: updated });
+          updateProject(id, { automatedPhases: updated });
         }
 
         const result = getProjectById(id);
