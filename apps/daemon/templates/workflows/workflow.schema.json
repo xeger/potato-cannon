@@ -63,7 +63,8 @@
       "oneOf": [
         { "$ref": "#/$defs/agentWorker" },
         { "$ref": "#/$defs/ralphLoopWorker" },
-        { "$ref": "#/$defs/taskLoopWorker" }
+        { "$ref": "#/$defs/taskLoopWorker" },
+        { "$ref": "#/$defs/answerBotWorker" }
       ]
     },
     "agentWorker": {
@@ -182,6 +183,48 @@
             ]
           },
           "minItems": 1
+        }
+      },
+      "additionalProperties": false
+    },
+    "answerBotWorker": {
+      "type": "object",
+      "description": "An answer bot that automatically responds to questions when phase is automated",
+      "required": ["id", "type", "source"],
+      "properties": {
+        "id": {
+          "type": "string",
+          "description": "Unique identifier for this worker"
+        },
+        "type": {
+          "const": "answerBot"
+        },
+        "source": {
+          "type": "string",
+          "description": "Path to agent definition file (e.g., 'agents/answer-bot.md')"
+        },
+        "description": {
+          "type": "string",
+          "description": "What this answer bot does"
+        },
+        "model": {
+          "oneOf": [
+            {
+              "type": "string",
+              "description": "Model shortcut (haiku, sonnet, opus) or explicit model ID"
+            },
+            {
+              "type": "object",
+              "description": "Model specification with provider",
+              "properties": {
+                "id": { "type": "string" },
+                "provider": { "type": "string" }
+              },
+              "required": ["id"],
+              "additionalProperties": false
+            }
+          ],
+          "description": "Optional model to use for this answer bot."
         }
       },
       "additionalProperties": false
