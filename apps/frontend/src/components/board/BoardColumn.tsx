@@ -94,7 +94,29 @@ export function BoardColumn({
                   : ''
             )}
           >
-            <h3 className="text-text-secondary font-semibold text-[13px]">{phase}</h3>
+            <div className="flex items-center gap-1.5">
+              {canAutomate && onToggleAutomated && (
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <IconButton
+                      tooltip=""
+                      onClick={onToggleAutomated}
+                      disabled={isMigrating}
+                      className={cn(isMigrating && 'cursor-not-allowed opacity-50')}
+                    >
+                      <Bot className={cn(
+                        "h-4 w-4",
+                        isAutomated ? "text-accent" : "text-text-muted"
+                      )} />
+                    </IconButton>
+                  </TooltipTrigger>
+                  <TooltipContent side="bottom">
+                    <p className="text-xs">{getTooltipText()}</p>
+                  </TooltipContent>
+                </Tooltip>
+              )}
+              <h3 className="text-text-secondary font-semibold text-[13px]">{phase}</h3>
+            </div>
             <div className="flex items-center gap-2">
               <span
                 className={cn(
@@ -118,26 +140,6 @@ export function BoardColumn({
                 >
                   <Archive className="h-4 w-4" />
                 </IconButton>
-              )}
-              {canAutomate && onToggleAutomated && (
-                <Tooltip>
-                  <TooltipTrigger asChild>
-                    <IconButton
-                      tooltip=""
-                      onClick={onToggleAutomated}
-                      disabled={isMigrating}
-                      className={cn(isMigrating && 'cursor-not-allowed opacity-50')}
-                    >
-                      <Bot className={cn(
-                        "h-4 w-4",
-                        isAutomated ? "text-accent" : "text-text-muted"
-                      )} />
-                    </IconButton>
-                  </TooltipTrigger>
-                  <TooltipContent side="bottom">
-                    <p className="text-xs">{getTooltipText()}</p>
-                  </TooltipContent>
-                </Tooltip>
               )}
               {showAddTicket && (
                 <IconButton tooltip="Create new ticket" onClick={openAddTicketModal}>
