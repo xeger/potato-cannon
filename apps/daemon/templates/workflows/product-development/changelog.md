@@ -2,6 +2,19 @@
 
 All notable changes to the product-development workflow.
 
+## [1.5.0] - 2026-03-05
+
+### New
+
+- **Answer Bot** - Phases with an answer bot can now run fully automated. When enabled, the answer bot responds to agent questions instead of waiting for human input.
+- **Automated phases** - Toggle automation per phase using the bot icon on board columns. Replaces the old "disabled phases" concept.
+- **Answer bot overrides** - Customize the answer bot's behavior per project from the column settings panel.
+- **`answer_question` MCP tool** - New tool for answer bot agents to submit responses to pending questions.
+
+### Changed
+
+- "Disabled phases" renamed to "automated phases" across the board. Automated phases stay active and process work automatically rather than being skipped.
+
 ## [1.4.0] - 2026-02-10
 
 ### Improved
