@@ -826,40 +826,9 @@ button, a, [role="button"] {
   }
 }
 
-/* Automated column golden shimmer border */
-.automated-shimmer {
-  position: relative;
-  z-index: 0;
-}
-
+/* Automated column golden border */
 .automated-shimmer {
   border: 1px solid color-mix(in srgb, var(--color-accent-yellow) 35%, transparent);
-}
-
-.automated-shimmer::before {
-  content: '';
-  position: absolute;
-  inset: 0;
-  border-radius: var(--radius-lg);
-  border: 1px solid transparent;
-  background:
-    linear-gradient(var(--color-bg-secondary), var(--color-bg-secondary)) padding-box,
-    conic-gradient(
-      from var(--border-angle),
-      transparent 0deg,
-      var(--color-accent-yellow) 180deg,
-      transparent 360deg
-    ) border-box;
-  z-index: -1;
-  animation: border-travel 6s linear infinite;
-  opacity: 0.4;
-}
-
-@media (prefers-reduced-motion: reduce) {
-  .automated-shimmer::before {
-    animation: none;
-    opacity: 0;
-  }
 }
 
 /* ================================================
