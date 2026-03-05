@@ -16,7 +16,7 @@ import {
   useTemplate,
   useUpdateTicket,
   useProjects,
-  useToggleDisabledPhase,
+  useToggleAutomatedPhase,
   useUpdateProject
 } from '@/hooks/queries'
 import { TemplateUpgradeBanner } from '@/components/TemplateUpgradeBanner'
@@ -95,7 +95,7 @@ export function Board({ projectId }: BoardProps) {
 
   // Mutations
   const updateTicket = useUpdateTicket()
-  const toggleDisabledPhase = useToggleDisabledPhase()
+  const toggleAutomatedPhase = useToggleAutomatedPhase()
   const updateProject = useUpdateProject()
 
   // View mode from store
@@ -108,13 +108,13 @@ export function Board({ projectId }: BoardProps) {
 
       const isCurrentlyDisabled = currentProject.disabledPhases?.includes(phaseName) ?? false
 
-      toggleDisabledPhase.mutate({
+      toggleAutomatedPhase.mutate({
         projectId,
         phaseId: phaseName,
-        disabled: !isCurrentlyDisabled
+        automated: !isCurrentlyDisabled
       })
     },
-    [projectId, currentProject, toggleDisabledPhase]
+    [projectId, currentProject, toggleAutomatedPhase]
   )
 
   const handleSwimlaneColorChange = useCallback(

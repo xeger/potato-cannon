@@ -34,18 +34,18 @@ export function useUpdateProject() {
   })
 }
 
-export function useToggleDisabledPhase() {
+export function useToggleAutomatedPhase() {
   const queryClient = useQueryClient()
   return useMutation({
     mutationFn: ({
       projectId,
       phaseId,
-      disabled
+      automated
     }: {
       projectId: string
       phaseId: string
-      disabled: boolean
-    }) => api.toggleDisabledPhase(projectId, phaseId, disabled),
+      automated: boolean
+    }) => api.toggleAutomatedPhase(projectId, phaseId, automated),
     onSuccess: (_, { projectId }) => {
       queryClient.invalidateQueries({ queryKey: ['projects'] })
       queryClient.invalidateQueries({ queryKey: ['tickets', projectId] })

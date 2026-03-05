@@ -11,7 +11,7 @@ vi.mock("@/hooks/queries", () => ({
     data: [{ id: "test-project", template: { name: "product-development" } }],
   }),
   useUpdateTicket: () => ({ mutate: vi.fn() }),
-  useToggleDisabledPhase: () => ({ mutate: vi.fn() }),
+  useToggleAutomatedPhase: () => ({ mutate: vi.fn() }),
   useUpdateProject: () => ({ mutate: vi.fn() }),
 }));
 
