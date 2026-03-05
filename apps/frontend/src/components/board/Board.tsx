@@ -158,7 +158,7 @@ export function Board({ projectId }: BoardProps) {
       updateProject.mutate({
         id: projectId,
         updates: {
-          wipLimits: Object.keys(newLimits).length > 0 ? newLimits : undefined
+          wipLimits: Object.keys(newLimits).length > 0 ? newLimits : null
         }
       })
     },

@@ -197,6 +197,7 @@ export function registerProjectRoutes(
         disabledPhases: p.disabledPhases,
         disabledPhaseMigration: p.disabledPhaseMigration,
         swimlaneColors: p.swimlaneColors,
+        wipLimits: p.wipLimits,
         folderId: p.folderId,
       }));
       res.json(list);

@@ -356,6 +356,10 @@ button, a, [role="button"] {
   outline-offset: 2px;
 }
 
+.wip-input:focus-visible {
+  outline: none;
+}
+
 /* Loading skeleton animation */
 .skeleton {
   background: linear-gradient(

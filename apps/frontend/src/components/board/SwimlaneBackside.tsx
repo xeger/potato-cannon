@@ -1,4 +1,4 @@
-import { useState, useCallback } from 'react'
+import { useState, useCallback, useEffect, useRef } from 'react'
 import { createPortal } from 'react-dom'
 import { Settings2, Bot } from 'lucide-react'
 import { SwimlaneColorPicker } from './SwimlaneColorPicker'
@@ -32,6 +32,31 @@ export function SwimlaneBackside({
   } | null>(null)
 
   const supportsWip = !['Ideas', 'Blocked', 'Done'].includes(phase)
+
+  // Local state for WIP input to avoid reset on every keystroke
+  const [localWip, setLocalWip] = useState<string>(wipLimit != null ? String(wipLimit) : '')
+  const localWipRef = useRef(localWip)
+  localWipRef.current = localWip
+
+  // Sync from prop when it changes externally (not from our own edits)
+  const isFocusedRef = useRef(false)
+  useEffect(() => {
+    if (!isFocusedRef.current) {
+      setLocalWip(wipLimit != null ? String(wipLimit) : '')
+    }
+  }, [wipLimit])
+
+  const commitWipValue = useCallback(() => {
+    const val = localWipRef.current
+    if (val === '') {
+      onWipLimitChange(null)
+    } else {
+      const num = parseInt(val, 10)
+      if (!isNaN(num) && num >= 1) {
+        onWipLimitChange(num)
+      }
+    }
+  }, [onWipLimitChange])
 
   const handleAgentClick = useCallback((agentType: string, agentName: string, model?: string) => {
     setSelectedAgent({ agentType, agentName, model })
@@ -76,13 +101,21 @@ export function SwimlaneBackside({
                 type="number"
                 min="1"
                 placeholder="No limit"
-                value={wipLimit ?? ''}
-                onChange={(e) => {
-                  const val = e.target.value
-                  onWipLimitChange(val ? Math.max(1, parseInt(val, 10)) : null)
+                value={localWip}
+                onChange={(e) => setLocalWip(e.target.value)}
+                onFocus={() => { isFocusedRef.current = true }}
+                onBlur={() => {
+                  isFocusedRef.current = false
+                  commitWipValue()
+                }}
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter') {
+                    commitWipValue()
+                    ;(e.target as HTMLInputElement).blur()
+                  }
                 }}
                 disabled={disabled}
-                className="w-full px-3 py-2 rounded-lg bg-bg-tertiary border border-border text-text-primary text-sm placeholder:text-text-muted focus:outline-none focus:ring-2 focus:ring-accent focus:border-transparent"
+                className="wip-input w-full px-3 py-2 rounded-lg bg-bg-tertiary border border-border text-text-primary text-sm placeholder:text-text-muted focus:border-accent"
               />
               <p className="text-[11px] text-text-muted">
                 Max tickets in this column. Leave empty for no limit.
