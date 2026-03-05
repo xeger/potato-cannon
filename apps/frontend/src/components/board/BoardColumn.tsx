@@ -80,7 +80,10 @@ export function BoardColumn({
       <div className={cn('swimlane-flip-inner h-full', isFlipped && 'flipped')}>
         {/* Front face - normal swimlane view */}
         <div
-          className="swimlane-front bg-bg-secondary rounded-lg flex flex-col"
+          className={cn(
+            "swimlane-front bg-bg-secondary rounded-lg flex flex-col",
+            isAutomated && "border border-[var(--color-accent-yellow)]/40"
+          )}
           style={columnBackgroundStyle}
         >
           {/* Column Header */}
@@ -106,7 +109,7 @@ export function BoardColumn({
                     >
                       <Bot className={cn(
                         "h-4 w-4",
-                        isAutomated ? "text-accent" : "text-text-muted"
+                        isAutomated ? "text-[var(--color-accent-yellow)]" : "text-text-muted"
                       )} />
                     </IconButton>
                   </TooltipTrigger>
