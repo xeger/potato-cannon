@@ -1,6 +1,6 @@
 import type Database from "better-sqlite3";
 
-const CURRENT_SCHEMA_VERSION = 8;
+const CURRENT_SCHEMA_VERSION = 9;
 
 /**
  * Run database migrations.
@@ -39,6 +39,10 @@ export function runMigrations(db: Database.Database): void {
 
   if (version < 8) {
     migrateV8(db);
+  }
+
+  if (version < 9) {
+    migrateV9(db);
   }
 
   db.pragma(`user_version = ${CURRENT_SCHEMA_VERSION}`);
@@ -421,5 +425,30 @@ function migrateV8(db: Database.Database): void {
 
   if (!ticketColNames.has("pending_phase")) {
     db.exec(`ALTER TABLE tickets ADD COLUMN pending_phase TEXT`);
+  }
+}
+
+/**
+ * V9: Rename disabled_phases → automated_phases (add new columns, copy data)
+ */
+function migrateV9(db: Database.Database): void {
+  const columns = db.pragma("table_info(projects)") as { name: string }[];
+  const colNames = new Set(columns.map((c) => c.name));
+
+  if (!colNames.has("automated_phases")) {
+    db.exec(`ALTER TABLE projects ADD COLUMN automated_phases TEXT`);
+
+    // Copy data from disabled_phases if it exists
+    if (colNames.has("disabled_phases")) {
+      db.exec(`UPDATE projects SET automated_phases = disabled_phases WHERE disabled_phases IS NOT NULL`);
+    }
+  }
+
+  // Also add automated_phase_migration (renamed from disabled_phase_migration)
+  if (!colNames.has("automated_phase_migration")) {
+    db.exec(`ALTER TABLE projects ADD COLUMN automated_phase_migration INTEGER DEFAULT 0`);
+    if (colNames.has("disabled_phase_migration")) {
+      db.exec(`UPDATE projects SET automated_phase_migration = disabled_phase_migration`);
+    }
   }
 }
