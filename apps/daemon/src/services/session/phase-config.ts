@@ -59,10 +59,10 @@ export async function getNextPhase(
 }
 
 /**
- * Resolve the actual target phase, skipping any automated phases.
- * Returns the first non-automated phase starting from the requested phase.
- * If the requested phase is not automated, returns it unchanged.
- * If all subsequent phases are automated, returns the last phase (Done).
+ * Resolve the actual target phase, skipping automated manual checkpoints.
+ * Only skips phases that are automated AND have no workers (pure manual gates).
+ * Phases with workers (agents, answerBot, etc.) always run — the answerBot
+ * handles questions automatically when the phase is automated.
  */
 export async function resolveTargetPhase(
   projectId: string,
@@ -85,16 +85,22 @@ export async function resolveTargetPhase(
     return requestedPhase; // Phase not found, return as-is
   }
 
-  // Find first non-automated phase starting from requestedPhase
+  // Find first phase that should not be skipped
   for (let i = startIndex; i < phases.length; i++) {
     const phase = phases[i];
     const isAutomated = project.automatedPhases?.includes(phase.name) ?? false;
-    if (!isAutomated) {
+
+    // Only skip automated phases that are pure manual checkpoints (no workers)
+    // Phases with workers should always run — answerBot handles questions
+    const isManualCheckpoint = phase.transitions?.manual === true &&
+      (!phase.workers || phase.workers.length === 0);
+
+    if (!isAutomated || !isManualCheckpoint) {
       return phase.name;
     }
   }
 
-  // All remaining phases automated - return last phase (Done)
+  // All remaining phases are automated manual checkpoints - return last phase
   return phases[phases.length - 1].name;
 }
 
