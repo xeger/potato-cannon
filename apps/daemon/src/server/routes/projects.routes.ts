@@ -293,6 +293,7 @@ export function registerProjectRoutes(
         icon?: string;
         color?: string;
         swimlaneColors?: Record<string, string>;
+        wipLimits?: Record<string, number>;
         folderId?: string | null;
       };
 
