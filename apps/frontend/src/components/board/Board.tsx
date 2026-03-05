@@ -9,6 +9,7 @@ import {
   useSensors
 } from '@dnd-kit/core'
 import { AlertTriangle, Loader2 } from 'lucide-react'
+import { toast } from 'sonner'
 import {
   useTickets,
   useProjectPhases,
@@ -182,6 +183,13 @@ export function Board({ projectId }: BoardProps) {
     targetPhase: string
     phaseName: string
   } | null>(null)
+  const [wipOverrideDialog, setWipOverrideDialog] = useState<{
+    open: boolean
+    ticketId: string
+    targetPhase: string
+    phaseName: string
+    hasAutomation: boolean
+  } | null>(null)
 
   // Group tickets by phase
   const ticketsByPhase = useMemo(() => {
@@ -226,12 +234,29 @@ export function Board({ projectId }: BoardProps) {
 
       if (!ticket || ticket.phase === targetPhase) return
 
+      // Check WIP limit
+      const wipLimit = currentProject?.wipLimits?.[targetPhase]
+      const phaseTickets = ticketsByPhase[targetPhase] || []
+      const isAtWip = wipLimit !== undefined && phaseTickets.length >= wipLimit
+
       // Check if target phase has automation
       const phaseConfig = templateConfig?.phases.find((p) => p.name === targetPhase)
       const hasAutomation = phaseHasAutomation(phaseConfig)
 
+      if (isAtWip) {
+        // Show WIP override dialog
+        setWipOverrideDialog({
+          open: true,
+          ticketId,
+          targetPhase,
+          phaseName: targetPhase,
+          hasAutomation
+        })
+        return
+      }
+
       if (hasAutomation) {
-        // Show confirmation dialog
+        // Show automation confirmation dialog
         setConfirmDialog({
           open: true,
           ticketId,
@@ -239,15 +264,15 @@ export function Board({ projectId }: BoardProps) {
           phaseName: targetPhase
         })
       } else {
-        // No automation, move directly
+        // No automation and no WIP issue, move directly
         updateTicket.mutate({
-          projectId: projectId,
+          projectId,
           ticketId,
           updates: { phase: targetPhase }
         })
       }
     },
-    [projectId, templateConfig, updateTicket]
+    [projectId, templateConfig, updateTicket, currentProject, ticketsByPhase]
   )
 
   const handleConfirmMove = useCallback(() => {
@@ -265,6 +290,27 @@ export function Board({ projectId }: BoardProps) {
   const handleCancelMove = useCallback(() => {
     setConfirmDialog(null)
   }, [])
+
+  const handleWipOverrideConfirm = useCallback(() => {
+    if (!wipOverrideDialog || !projectId) return
+
+    updateTicket.mutate({
+      projectId,
+      ticketId: wipOverrideDialog.ticketId,
+      updates: { phase: wipOverrideDialog.targetPhase, force: true }
+    })
+
+    setWipOverrideDialog(null)
+  }, [wipOverrideDialog, projectId, updateTicket])
+
+  const handleWipOverrideCancel = useCallback(() => {
+    if (wipOverrideDialog) {
+      toast.info('WIP limit reached', {
+        description: `${wipOverrideDialog.phaseName} is at capacity. Move was cancelled.`
+      })
+    }
+    setWipOverrideDialog(null)
+  }, [wipOverrideDialog])
 
   // Loading state
   if (ticketsLoading) {
@@ -382,6 +428,33 @@ export function Board({ projectId }: BoardProps) {
               Cancel
             </Button>
             <Button onClick={handleConfirmMove}>Continue</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* WIP Override Dialog */}
+      <Dialog
+        open={wipOverrideDialog?.open ?? false}
+        onOpenChange={(open) => !open && handleWipOverrideCancel()}
+      >
+        <DialogContent className="bg-bg-secondary border-border">
+          <DialogHeader>
+            <DialogTitle className="text-text-primary">Column at Capacity</DialogTitle>
+            <DialogDescription className="text-text-secondary">
+              <span className="font-medium text-amber-400">{wipOverrideDialog?.phaseName}</span>{' '}
+              has reached its WIP limit. Moving this ticket will exceed the limit.
+              {wipOverrideDialog?.hasAutomation && (
+                <span className="block mt-2">
+                  This phase also has automation that will start when the ticket moves.
+                </span>
+              )}
+            </DialogDescription>
+          </DialogHeader>
+          <DialogFooter>
+            <Button variant="outline" onClick={handleWipOverrideCancel}>
+              Cancel
+            </Button>
+            <Button onClick={handleWipOverrideConfirm}>Move Anyway</Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>

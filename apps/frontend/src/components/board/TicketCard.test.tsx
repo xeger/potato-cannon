@@ -1,3 +1,4 @@
+import React from 'react'
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
 import { render, screen, cleanup } from '@testing-library/react'
 import { TicketCard } from './TicketCard'
@@ -46,6 +47,12 @@ vi.mock('@/stores/appStore', () => ({
 vi.mock('@/components/ticket-detail/ArchiveConfirmDialog', () => ({
   ArchiveConfirmDialog: () => null,
   shouldShowArchiveWarning: () => false,
+}))
+
+vi.mock('@/components/ui/tooltip', () => ({
+  Tooltip: ({ children }: { children: React.ReactNode }) => <>{children}</>,
+  TooltipTrigger: ({ children }: { children: React.ReactNode }) => <>{children}</>,
+  TooltipContent: ({ children }: { children: React.ReactNode }) => <div>{children}</div>,
 }))
 
 const baseTicket = {
@@ -140,5 +147,48 @@ describe('TicketCard - Processing Activity', () => {
     render(<TicketCard ticket={baseTicket as any} projectId="proj-1" />)
 
     expect(screen.queryByText('Processing...')).toBeNull()
+  })
+})
+
+describe('TicketCard - Pending Phase Indicator', () => {
+  beforeEach(() => {
+    vi.clearAllMocks()
+    mockIsTicketPending.mockReturnValue(false)
+  })
+
+  afterEach(() => {
+    cleanup()
+  })
+
+  it('should show clock icon when ticket has pendingPhase', () => {
+    const ticket = {
+      ...baseTicket,
+      pendingPhase: 'Architecture',
+    }
+
+    render(<TicketCard ticket={ticket as any} projectId="proj-1" />)
+
+    expect(screen.getByText('Waiting for Architecture')).toBeTruthy()
+  })
+
+  it('should not show pending phase indicator when pendingPhase is undefined', () => {
+    render(<TicketCard ticket={baseTicket as any} projectId="proj-1" />)
+
+    expect(screen.queryByText(/Waiting for/)).toBeNull()
+  })
+
+  it('should not show pending phase indicator when pending question badge is showing', () => {
+    mockIsTicketPending.mockReturnValue(true)
+
+    const ticket = {
+      ...baseTicket,
+      pendingPhase: 'Architecture',
+    }
+
+    render(<TicketCard ticket={ticket as any} projectId="proj-1" />)
+
+    // The ? badge should show instead
+    expect(screen.getByText('?')).toBeTruthy()
+    expect(screen.queryByText('Waiting for Architecture')).toBeNull()
   })
 })
