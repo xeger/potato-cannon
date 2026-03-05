@@ -226,6 +226,36 @@ Iterates over tasks created via the MCP API. Runs nested workers once per task.
 
 **Nesting restriction:** `taskLoop` cannot contain another `taskLoop` (can contain `agent` or `ralphLoop`).
 
+### Answer Bot Worker
+
+Reactive worker that auto-responds to questions when the phase is automated. Not executed sequentially — acts as phase-level metadata.
+
+```json
+{
+  "id": "answer-bot",
+  "type": "answerBot",
+  "source": "agents/answer-bot.md",
+  "description": "Answers questions about the refinement process",
+  "model": "opus"
+}
+```
+
+| Field | Required | Description |
+|-------|----------|-------------|
+| `id` | Yes | Unique identifier |
+| `type` | Yes | Must be `"answerBot"` |
+| `source` | Yes | Path to agent markdown file |
+| `description` | No | What this answer bot does |
+| `model` | No | Model to use (see Model Selection) |
+
+**Execution flow:**
+1. An agent in the phase calls `chat_ask` and suspends
+2. If phase is in `automatedPhases`, daemon spawns the answerBot agent
+3. AnswerBot calls `answer_question` MCP tool with its response
+4. Original session resumes with the answer
+
+**Override support:** Create `answer-bot.override.md` in the project template to customize behavior (e.g., research-based responses).
+
 ## Nesting Patterns
 
 Workers can nest to create sophisticated orchestration:
