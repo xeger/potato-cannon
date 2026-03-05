@@ -54,10 +54,10 @@ function rowToProject(row: Record<string, unknown>): Project {
           version: row.template_version as string,
         }
       : undefined,
-    disabledPhases: row.disabled_phases
-      ? JSON.parse(row.disabled_phases as string)
+    automatedPhases: row.automated_phases
+      ? JSON.parse(row.automated_phases as string)
       : undefined,
-    disabledPhaseMigration: row.disabled_phase_migration === 1,
+    automatedPhaseMigration: row.automated_phase_migration === 1,
     swimlaneColors: row.swimlane_colors
       ? JSON.parse(row.swimlane_colors as string)
       : undefined,
@@ -183,15 +183,15 @@ export class ProjectStore {
         updates.template?.version || null
       );
     }
-    if (updates.disabledPhases !== undefined) {
-      fields.push("disabled_phases = ?");
+    if (updates.automatedPhases !== undefined) {
+      fields.push("automated_phases = ?");
       values.push(
-        updates.disabledPhases ? JSON.stringify(updates.disabledPhases) : null
+        updates.automatedPhases ? JSON.stringify(updates.automatedPhases) : null
       );
     }
-    if (updates.disabledPhaseMigration !== undefined) {
-      fields.push("disabled_phase_migration = ?");
-      values.push(updates.disabledPhaseMigration ? 1 : 0);
+    if (updates.automatedPhaseMigration !== undefined) {
+      fields.push("automated_phase_migration = ?");
+      values.push(updates.automatedPhaseMigration ? 1 : 0);
     }
     if (updates.swimlaneColors !== undefined) {
       fields.push("swimlane_colors = ?");
