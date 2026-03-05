@@ -82,7 +82,7 @@ export function BoardColumn({
         <div
           className={cn(
             "swimlane-front bg-bg-secondary rounded-lg flex flex-col",
-            isAutomated && "border border-[var(--color-accent-yellow)]/40"
+            isAutomated && "automated-shimmer"
           )}
           style={columnBackgroundStyle}
         >
