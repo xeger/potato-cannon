@@ -526,29 +526,9 @@ export function registerTicketRoutes(
           return;
         }
 
-        // If no active session, resume the suspended ticket (same as /input)
-        const activeSession = getActiveSessionForTicket(ticketId);
-        if (!activeSession) {
-          const projects = getProjects();
-          const project = projects.get(projectId);
-
-          if (project) {
-            try {
-              const newSessionId = await sessionService.resumeSuspendedTicket(
-                projectId,
-                ticketId,
-                answer,
-              );
-              console.log(`[answer-question] Spawned resumed session ${newSessionId} for suspended ticket ${ticketId}`);
-              res.json({ success: true, sessionId: newSessionId, resumed: true });
-              return;
-            } catch (err) {
-              console.error(`[answer-question] Failed to resume suspended ticket: ${(err as Error).message}`);
-              // Fall through — response is already written via handleResponse
-            }
-          }
-        }
-
+        // Resume is handled by the answerBot's onExit handler in session.service.ts.
+        // When the answerBot session ends, it triggers resumeSuspendedTicket automatically.
+        // We don't attempt resume here because the answerBot session is still active.
         res.json({ success: true });
       } catch (error) {
         res.status(500).json({ error: (error as Error).message });

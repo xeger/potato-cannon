@@ -1174,6 +1174,19 @@ export class SessionService {
       // Intentionally NO handleAgentCompletion call here.
       // The answer bot is fire-and-forget — it does not participate
       // in the worker executor state machine.
+
+      // Now that the answer bot session has ended and been cleaned up,
+      // resume the original suspended ticket session. The answer was
+      // already written by the answer_question MCP tool during execution.
+      if (exitCode === 0) {
+        this.resumeSuspendedTicket(projectId, ticketId, "(answered by answer bot)")
+          .then((newSessionId) => {
+            console.log(`[spawnAnswerBotWorker] Resumed original session ${newSessionId} after answer bot`);
+          })
+          .catch((err) => {
+            console.error(`[spawnAnswerBotWorker] Failed to resume suspended ticket: ${(err as Error).message}`);
+          });
+      }
     });
   }
 
