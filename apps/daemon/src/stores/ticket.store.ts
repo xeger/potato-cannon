@@ -52,6 +52,7 @@ interface TicketRow {
   archived_at: string | null;
   conversation_id: string | null;
   worker_state: string | null;
+  pending_phase: string | null;
 }
 
 interface HistoryRow {
@@ -163,6 +164,15 @@ export class TicketStore {
     return this.rowToTicket(row);
   }
 
+  countTicketsInPhase(projectId: string, phase: string): number {
+    const row = this.db
+      .prepare(
+        "SELECT COUNT(*) as count FROM tickets WHERE project_id = ? AND phase = ? AND archived = 0"
+      )
+      .get(projectId, phase) as { count: number };
+    return row.count;
+  }
+
   getTicketById(ticketId: string): Ticket | null {
     const row = this.db
       .prepare("SELECT * FROM tickets WHERE id = ?")
@@ -223,6 +233,11 @@ export class TicketStore {
       values.push(updates.description);
     }
 
+    if (updates.pendingPhase !== undefined) {
+      fields.push("pending_phase = ?");
+      values.push(updates.pendingPhase || null);
+    }
+
     if (updates.phase !== undefined && updates.phase !== existing.phase) {
       fields.push("phase = ?");
       values.push(updates.phase);
@@ -243,6 +258,10 @@ export class TicketStore {
            VALUES (?, ?, ?, ?)`
         )
         .run(historyId, ticketId, updates.phase, now);
+
+      // Clear pending_phase when ticket actually moves to a new phase
+      fields.push("pending_phase = ?");
+      values.push(null);
     }
 
     values.push(ticketId);
@@ -404,6 +423,7 @@ export class TicketStore {
       archived: row.archived === 1,
       archivedAt: row.archived_at || undefined,
       conversationId: row.conversation_id || undefined,
+      pendingPhase: row.pending_phase || undefined,
     };
   }
 
@@ -569,6 +589,10 @@ export function getPhaseHistoryEntries(ticketId: string): Array<{ id: string; ph
 
 export function deleteHistoryEntries(historyIds: string[]): number {
   return new TicketStore(getDatabase()).deleteHistoryEntries(historyIds);
+}
+
+export function countTicketsInPhase(projectId: string, phase: string): number {
+  return new TicketStore(getDatabase()).countTicketsInPhase(projectId, phase);
 }
 
 // =============================================================================

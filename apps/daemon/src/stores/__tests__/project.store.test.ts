@@ -395,4 +395,37 @@ describe("ProjectStore", () => {
       assert.strictEqual(deleted, false);
     });
   });
+
+  it("should persist and retrieve wipLimits", () => {
+    const project = store.createProject({
+      displayName: "WIP Test",
+      path: "/test/wip-test",
+    });
+
+    const wipLimits = { Build: 3, Review: 2 };
+    const updated = store.updateProject(project.id, { wipLimits });
+
+    assert.ok(updated);
+    assert.deepStrictEqual(updated!.wipLimits, wipLimits);
+
+    // Re-read from DB to verify persistence
+    const fetched = store.getProjectById(project.id);
+    assert.ok(fetched);
+    assert.deepStrictEqual(fetched!.wipLimits, wipLimits);
+  });
+
+  it("should clear wipLimits when set to empty object", () => {
+    const project = store.createProject({
+      displayName: "WIP Clear Test",
+      path: "/test/wip-clear-test",
+    });
+
+    // Set wipLimits
+    store.updateProject(project.id, { wipLimits: { Build: 5 } });
+
+    // Clear wipLimits by passing empty object
+    const updated = store.updateProject(project.id, { wipLimits: {} as any });
+    assert.ok(updated);
+    assert.strictEqual(updated!.wipLimits, undefined);
+  });
 });

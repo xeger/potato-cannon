@@ -61,6 +61,9 @@ function rowToProject(row: Record<string, unknown>): Project {
     swimlaneColors: row.swimlane_colors
       ? JSON.parse(row.swimlane_colors as string)
       : undefined,
+    wipLimits: row.wip_limits
+      ? JSON.parse(row.wip_limits as string)
+      : undefined,
     branchPrefix: (row.branch_prefix as string) || 'potato',
     folderId: (row.folder_id as string) || null,
   };
@@ -194,6 +197,14 @@ export class ProjectStore {
       fields.push("swimlane_colors = ?");
       values.push(
         updates.swimlaneColors ? JSON.stringify(updates.swimlaneColors) : null
+      );
+    }
+    if (updates.wipLimits !== undefined) {
+      fields.push("wip_limits = ?");
+      values.push(
+        updates.wipLimits && Object.keys(updates.wipLimits).length > 0
+          ? JSON.stringify(updates.wipLimits)
+          : null
       );
     }
     if (updates.branchPrefix !== undefined) {

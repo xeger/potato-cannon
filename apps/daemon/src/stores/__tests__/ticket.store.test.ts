@@ -322,6 +322,70 @@ describe("TicketStore", () => {
     });
   });
 
+  describe("pendingPhase", () => {
+    it("should persist and retrieve pendingPhase", () => {
+      const ticket = ticketStore.createTicket(projectId, { title: "Pending Phase Test" });
+
+      const updated = ticketStore.updateTicket(projectId, ticket.id, {
+        pendingPhase: "Architecture",
+      });
+
+      assert.ok(updated);
+      assert.strictEqual(updated!.pendingPhase, "Architecture");
+
+      // Re-read from DB
+      const fetched = ticketStore.getTicket(projectId, ticket.id);
+      assert.ok(fetched);
+      assert.strictEqual(fetched!.pendingPhase, "Architecture");
+    });
+
+    it("should clear pendingPhase when set to null", () => {
+      const ticket = ticketStore.createTicket(projectId, { title: "Clear Pending Test" });
+
+      ticketStore.updateTicket(projectId, ticket.id, { pendingPhase: "Build" });
+      const updated = ticketStore.updateTicket(projectId, ticket.id, { pendingPhase: null });
+
+      assert.ok(updated);
+      assert.strictEqual(updated!.pendingPhase, undefined);
+    });
+
+    it("should clear pendingPhase when ticket phase changes", () => {
+      const ticket = ticketStore.createTicket(projectId, { title: "Phase Change Clears Pending" });
+
+      ticketStore.updateTicket(projectId, ticket.id, { pendingPhase: "Build" });
+      const updated = ticketStore.updateTicket(projectId, ticket.id, { phase: "Build" });
+
+      assert.ok(updated);
+      assert.strictEqual(updated!.pendingPhase, undefined);
+    });
+  });
+
+  describe("countTicketsInPhase", () => {
+    it("should count non-archived tickets in a phase", () => {
+      ticketStore.createTicket(projectId, { title: "Count Test 1" });
+      ticketStore.createTicket(projectId, { title: "Count Test 2" });
+      ticketStore.createTicket(projectId, { title: "Count Test 3" });
+
+      // All tickets start in "Ideas" phase
+      const count = ticketStore.countTicketsInPhase(projectId, "Ideas");
+      assert.strictEqual(count, 3);
+    });
+
+    it("should return 0 for phases with no tickets", () => {
+      const count = ticketStore.countTicketsInPhase(projectId, "Architecture");
+      assert.strictEqual(count, 0);
+    });
+
+    it("should not count archived tickets", () => {
+      const ticket = ticketStore.createTicket(projectId, { title: "Archive Count Test" });
+      ticketStore.updateTicket(projectId, ticket.id, { phase: "Done" });
+      ticketStore.archiveTicket(projectId, ticket.id);
+
+      const count = ticketStore.countTicketsInPhase(projectId, "Done");
+      assert.strictEqual(count, 0);
+    });
+  });
+
   describe("History Queries", () => {
     it("should get all history entries", () => {
       const ticket = ticketStore.createTicket(projectId, { title: "Test" });
