@@ -25,18 +25,39 @@ async function startDaemon(): Promise<void> {
 
   // In dev: __dirname is apps/desktop/out/main/, go up 4 levels to repo root
   // In prod: daemon is bundled in resources
-  const daemonDir = isDev
+  const bundledDaemonDir = isDev
     ? path.join(__dirname, '..', '..', '..', '..', 'apps', 'daemon')
     : path.join(process.resourcesPath, 'daemon')
-  const daemonPath = path.join(daemonDir, 'bin', 'potato-cannon.js')
 
-  const nodeEnv = isDev ? 'development' : 'production'
+  // In production, _modules needs to be accessible as node_modules for ESM resolution.
+  // On Linux (AppImage), the filesystem is read-only, so we create a temp directory
+  // with symlinks. On Mac/Windows, we can symlink directly inside the bundle.
+  let daemonDir: string
+  if (!isDev && process.platform === 'linux') {
+    const tempDaemonDir = path.join(app.getPath('temp'), 'potato-cannon-daemon')
+    if (fs.existsSync(tempDaemonDir)) {
+      fs.rmSync(tempDaemonDir, { recursive: true })
+    }
+    fs.mkdirSync(tempDaemonDir, { recursive: true })
 
-  // In production, _modules needs to be symlinked to node_modules for ESM resolution
-  // (electron-builder filters out node_modules from extraResources, so we rename it during build)
-  if (!isDev) {
-    const modulesPath = path.join(daemonDir, '_modules')
-    const nodeModulesPath = path.join(daemonDir, 'node_modules')
+    for (const entry of fs.readdirSync(bundledDaemonDir)) {
+      if (entry === '_modules') continue
+      fs.symlinkSync(
+        path.join(bundledDaemonDir, entry),
+        path.join(tempDaemonDir, entry)
+      )
+    }
+
+    fs.symlinkSync(
+      path.join(bundledDaemonDir, '_modules'),
+      path.join(tempDaemonDir, 'node_modules')
+    )
+    console.log('[electron] Created temp daemon directory with node_modules symlink')
+    daemonDir = tempDaemonDir
+  } else if (!isDev) {
+    // Mac/Windows: bundle filesystem is writable, symlink directly
+    const modulesPath = path.join(bundledDaemonDir, '_modules')
+    const nodeModulesPath = path.join(bundledDaemonDir, 'node_modules')
     if (fs.existsSync(modulesPath) && !fs.existsSync(nodeModulesPath)) {
       try {
         fs.symlinkSync(modulesPath, nodeModulesPath, 'junction')
@@ -45,7 +66,13 @@ async function startDaemon(): Promise<void> {
         console.error('[electron] Failed to create node_modules symlink:', err)
       }
     }
+    daemonDir = bundledDaemonDir
+  } else {
+    daemonDir = bundledDaemonDir
   }
+
+  const daemonPath = path.join(daemonDir, 'bin', 'potato-cannon.js')
+  const nodeEnv = isDev ? 'development' : 'production'
 
   // In production, use Electron's Node.js to ensure native module compatibility
   // ELECTRON_RUN_AS_NODE makes Electron act as a regular Node.js process
@@ -54,9 +81,22 @@ async function startDaemon(): Promise<void> {
     ? { ...process.env, NODE_ENV: nodeEnv }
     : { ...process.env, NODE_ENV: nodeEnv, ELECTRON_RUN_AS_NODE: '1' }
 
+  // On Linux, pass the frontend path explicitly since the daemon runs from a
+  // temp dir where relative paths back to the AppImage won't resolve.
+  if (!isDev && process.platform === 'linux') {
+    env.POTATO_FRONTEND_DIST = path.join(process.resourcesPath, 'frontend')
+  }
+
   console.log(`[electron] Starting daemon: ${nodePath} ${daemonPath} start`)
 
-  daemonProcess = spawn(nodePath, [daemonPath, 'start'], {
+  // On Linux, use --preserve-symlinks so Node.js resolves modules relative
+  // to the symlink paths (temp dir with node_modules) rather than the real paths
+  // (read-only AppImage where only _modules exists).
+  const nodeArgs = (!isDev && process.platform === 'linux')
+    ? ['--preserve-symlinks', '--preserve-symlinks-main', daemonPath, 'start']
+    : [daemonPath, 'start']
+
+  daemonProcess = spawn(nodePath, nodeArgs, {
     env,
     stdio: ['ignore', 'pipe', 'pipe']
   })

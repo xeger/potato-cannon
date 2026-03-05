@@ -551,12 +551,16 @@ export async function main(): Promise<void> {
   // Path differs between monorepo build and Electron bundle
   let frontendDist: string | null = null;
   if (process.env.NODE_ENV !== 'development') {
-    // Try monorepo path first: apps/daemon/dist/server -> apps/frontend/dist
+    // Electron passes the frontend path explicitly via env var
+    const envPath = process.env.POTATO_FRONTEND_DIST;
+    // Try monorepo path: apps/daemon/dist/server -> apps/frontend/dist
     const monorepoPath = path.join(__dirname, '..', '..', '..', 'frontend', 'dist');
     // Electron bundle path: Resources/daemon/dist/server -> Resources/frontend
     const electronPath = path.join(__dirname, '..', '..', '..', 'frontend');
 
-    if (existsSync(path.join(monorepoPath, 'index.html'))) {
+    if (envPath && existsSync(path.join(envPath, 'index.html'))) {
+      frontendDist = envPath;
+    } else if (existsSync(path.join(monorepoPath, 'index.html'))) {
       frontendDist = monorepoPath;
     } else if (existsSync(path.join(electronPath, 'index.html'))) {
       frontendDist = electronPath;
