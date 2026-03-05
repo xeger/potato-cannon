@@ -949,13 +949,14 @@ export class SessionService {
     }
 
     // Build prompt with question context
+    const options = Array.isArray(pendingQuestion.options) ? pendingQuestion.options : null;
     const questionContext = [
       "## Pending Question",
       "",
-      `**Question:** ${pendingQuestion.question}`,
+      `**Question:** ${pendingQuestion.text}`,
       "",
-      pendingQuestion.options
-        ? `**Options:**\n${pendingQuestion.options.map((o, i) => `${i + 1}. ${o}`).join("\n")}`
+      options
+        ? `**Options:**\n${options.map((o: string, i: number) => `${i + 1}. ${o}`).join("\n")}`
         : "*Free-form response expected*",
     ].join("\n");
 
