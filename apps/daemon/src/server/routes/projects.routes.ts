@@ -818,7 +818,7 @@ export function registerProjectRoutes(
               description: worker.description,
             };
 
-            if (worker.type === "agent" && worker.source) {
+            if ((worker.type === "agent" || worker.type === "answerBot") && worker.source) {
               // Extract agent type from source path (e.g., "agents/refinement.md" -> "refinement")
               const match = worker.source.match(/agents\/([^.]+)\.md$/);
               if (match) {
@@ -827,8 +827,9 @@ export function registerProjectRoutes(
                 const agentPath = `agents/${match[1]}.md`;
                 node.hasOverride = await hasProjectAgentOverride(id, agentPath);
               }
-              // Model is typically in the worker config but may need template lookup
-              // For now, we'll leave model as undefined - can be added later if available
+              if (worker.model) {
+                node.model = typeof worker.model === "string" ? worker.model : worker.model.id;
+              }
             }
 
             if (worker.type === "ralphLoop" || worker.type === "taskLoop") {
