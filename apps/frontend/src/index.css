@@ -832,6 +832,10 @@ button, a, [role="button"] {
   z-index: 0;
 }
 
+.automated-shimmer {
+  border: 1px solid color-mix(in srgb, var(--color-accent-yellow) 35%, transparent);
+}
+
 .automated-shimmer::before {
   content: '';
   position: absolute;
@@ -842,23 +846,19 @@ button, a, [role="button"] {
     linear-gradient(var(--color-bg-secondary), var(--color-bg-secondary)) padding-box,
     conic-gradient(
       from var(--border-angle),
-      var(--color-accent-yellow) 0deg,
-      transparent 60deg,
-      transparent 300deg,
-      var(--color-accent-yellow) 360deg
+      transparent 0deg,
+      var(--color-accent-yellow) 180deg,
+      transparent 360deg
     ) border-box;
   z-index: -1;
   animation: border-travel 6s linear infinite;
-  opacity: 0.5;
+  opacity: 0.4;
 }
 
 @media (prefers-reduced-motion: reduce) {
   .automated-shimmer::before {
     animation: none;
-    background:
-      linear-gradient(var(--color-bg-secondary), var(--color-bg-secondary)) padding-box,
-      linear-gradient(var(--color-accent-yellow), var(--color-accent-yellow)) border-box;
-    opacity: 0.3;
+    opacity: 0;
   }
 }
 
