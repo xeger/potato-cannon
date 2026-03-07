@@ -835,7 +835,14 @@ button, a, [role="button"] {
 
 /* Draggable title bar - the header itself handles dragging now */
 .electron-title-bar {
-  display: none; /* Header handles drag region */
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: var(--electron-header-height);
+  -webkit-app-region: drag;
+  z-index: 999;
+  pointer-events: none;
 }
 
 /* Header: fixed at top, spans full window width, independent of sidebar */
