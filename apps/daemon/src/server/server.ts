@@ -895,9 +895,13 @@ export async function startServer(
 
   if (options.daemon) {
     const { spawn } = await import("child_process");
+    const { openSync } = await import("fs");
+    const { homedir } = await import("os");
+    const logPath = path.join(homedir(), ".potato-cannon", "daemon.log");
+    const logFd = openSync(logPath, "a");
     const child = spawn(process.argv[0], [fileURLToPath(import.meta.url)], {
       detached: true,
-      stdio: "ignore",
+      stdio: ["ignore", logFd, logFd],
       env: { ...process.env, POTATO_DAEMON_PORT: port.toString() },
     });
     child.unref();
@@ -937,4 +941,29 @@ export async function getStatus(): Promise<{
     // Not running
   }
   return { running: false };
+}
+
+/**
+ * Auto-execute when this file is run directly.
+ * This enables daemon mode: `startServer({ daemon: true })` spawns a detached
+ * child process that runs this file (`node server.js`), which hits this guard
+ * and calls `main()`.
+ *
+ * For debugging daemon crashes, run the compiled file directly to see output
+ * in the terminal:
+ *   node apps/daemon/dist/server/server.js
+ */
+if (process.argv[1] && fileURLToPath(import.meta.url) === path.resolve(process.argv[1])) {
+  process.on("uncaughtException", (err) => {
+    console.error("[FATAL] Uncaught exception:", err);
+    process.exit(1);
+  });
+  process.on("unhandledRejection", (err) => {
+    console.error("[FATAL] Unhandled rejection:", err);
+    process.exit(1);
+  });
+  main().catch((err) => {
+    console.error("[FATAL] main() crashed:", err);
+    process.exit(1);
+  });
 }

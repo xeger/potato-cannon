@@ -77,14 +77,14 @@ async function startDaemon(): Promise<void> {
   // In production, use Electron's Node.js to ensure native module compatibility
   // ELECTRON_RUN_AS_NODE makes Electron act as a regular Node.js process
   const nodePath = isDev ? process.execPath : process.execPath
-  const env = isDev
+  const env: NodeJS.ProcessEnv = isDev
     ? { ...process.env, NODE_ENV: nodeEnv }
     : { ...process.env, NODE_ENV: nodeEnv, ELECTRON_RUN_AS_NODE: '1' }
 
   // On Linux, pass the frontend path explicitly since the daemon runs from a
   // temp dir where relative paths back to the AppImage won't resolve.
   if (!isDev && process.platform === 'linux') {
-    env.POTATO_FRONTEND_DIST = path.join(process.resourcesPath, 'frontend')
+    ;(env as Record<string, string>).POTATO_FRONTEND_DIST = path.join(process.resourcesPath, 'frontend')
   }
 
   console.log(`[electron] Starting daemon: ${nodePath} ${daemonPath} start`)
