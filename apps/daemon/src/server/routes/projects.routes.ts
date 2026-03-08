@@ -33,6 +33,7 @@ import {
   resolveTargetPhase,
   getPhaseConfig,
 } from "../../services/session/phase-config.js";
+import { isPhaseAtWipLimit } from "../../services/session/wip.js";
 import { clearWorkerState } from "../../services/session/worker-state.js";
 import { getUpgradeType } from "../../utils/semver.js";
 import type { Project } from "../../types/config.types.js";
@@ -82,10 +83,23 @@ async function migrateTicketsFromAutomatedPhase(
 
   const automationQueue: Array<{ ticketId: string; phase: string }> = [];
 
-  // Move tickets sequentially
+  // Move tickets sequentially, respecting WIP limits
   for (const ticket of tickets) {
     try {
       const targetPhase = await resolveTargetPhase(projectId, automatedPhase);
+
+      // Check WIP limit before moving
+      if (isPhaseAtWipLimit(projectId, targetPhase)) {
+        // Queue as pending instead of moving directly
+        await updateTicket(projectId, ticket.id, {
+          pendingPhase: targetPhase as TicketPhase,
+        });
+        console.log(
+          `[migrateTicketsFromAutomatedPhase] WIP limit reached for ${targetPhase}, queued ticket ${ticket.id} as pending`,
+        );
+        continue;
+      }
+
       await updateTicket(projectId, ticket.id, {
         phase: targetPhase as TicketPhase,
       });
