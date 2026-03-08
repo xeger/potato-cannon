@@ -216,7 +216,7 @@ async function reconcileTicketSessions(): Promise<void> {
 async function recoverPendingResponses(): Promise<void> {
   if (!sessionService) return;
 
-  const pending = await scanPendingResponses();
+  const pending = scanPendingResponses();
   if (pending.length === 0) return;
 
   console.log(
@@ -248,8 +248,8 @@ async function recoverPendingResponses(): Promise<void> {
           console.log(
             `[recovery] Ticket ${item.contextId} is in terminal phase ${ticket.phase}, cleaning up stale pending files`,
           );
-          await clearQuestion(item.projectId, item.contextId);
-          await clearResponse(item.projectId, item.contextId);
+          clearQuestion(item.projectId, item.contextId);
+          clearResponse(item.projectId, item.contextId);
           continue;
         }
 
@@ -524,7 +524,7 @@ export async function main(): Promise<void> {
   setInterval(async () => {
     if (!sessionService) return;
     const processingByProject = sessionService.getProcessingByProject();
-    const pendingByProject = await getPendingQuestionsByProject();
+    const pendingByProject = getPendingQuestionsByProject();
 
     // Collect all project IDs from both maps
     const allProjectIds = new Set([
@@ -697,7 +697,7 @@ export async function main(): Promise<void> {
 
                 if (project && sessionService) {
                   // Check if this is a suspended session (has pending question)
-                  const pendingQuestion = await readQuestion(context.projectId, context.ticketId);
+                  const pendingQuestion = readQuestion(context.projectId, context.ticketId);
 
                   if (pendingQuestion) {
                     // Suspended session — resume with --resume flag
@@ -796,7 +796,7 @@ export async function main(): Promise<void> {
                 const project = projects.get(context.projectId);
 
                 if (project && sessionService) {
-                  const pendingQuestion = await readQuestion(context.projectId, context.ticketId);
+                  const pendingQuestion = readQuestion(context.projectId, context.ticketId);
 
                   if (pendingQuestion) {
                     const newSessionId = await sessionService.resumeSuspendedTicket(

@@ -604,8 +604,8 @@ export class SessionService {
 
     // Check for pending response from previous session
     let pendingContext: { question: string; response: string } | undefined;
-    const pendingResponse = await readResponse(projectId, brainstormId);
-    const pendingQuestion = await readQuestion(projectId, brainstormId);
+    const pendingResponse = readResponse(projectId, brainstormId);
+    const pendingQuestion = readQuestion(projectId, brainstormId);
 
     if (pendingResponse && pendingQuestion) {
       console.log(
@@ -615,9 +615,9 @@ export class SessionService {
         question: pendingQuestion.question,
         response: pendingResponse.answer,
       };
-      // Clear the files so the new session doesn't also pick them up via waitForResponse
-      await clearResponse(projectId, brainstormId);
-      await clearQuestion(projectId, brainstormId);
+      // Clear the rows so the new session doesn't also pick them up via waitForResponse
+      clearResponse(projectId, brainstormId);
+      clearQuestion(projectId, brainstormId);
     }
 
     // Only build full prompt for first session; resumed sessions use --resume
@@ -1097,6 +1097,7 @@ export class SessionService {
 
     this.eventEmitter.emit("session:started", { sessionId, ...meta });
 
+    let claudeSessionIdCaptured = false;
     proc.onData((data: string) => {
       const lines = data.split("\n").filter(Boolean);
       for (const line of lines) {
@@ -1110,9 +1111,18 @@ export class SessionService {
             event: logEntry,
           });
 
-          // Intentionally do NOT capture claude_session_id for answerBot sessions.
-          // getLatestClaudeSessionIdForTicket must return the original agent's ID
-          // so that --resume targets the correct session.
+          // Capture claude_session_id for the answerBot session.
+          // This is safe now because resumeSuspendedTicket reads the
+          // claudeSessionId from the pending question file, not from
+          // a "latest session" lookup.
+          if (
+            !claudeSessionIdCaptured &&
+            event.type === "system" &&
+            event.session_id
+          ) {
+            claudeSessionIdCaptured = true;
+            updateClaudeSessionId(sessionId, event.session_id);
+          }
         } catch {
           const logEntry = {
             type: "raw",
@@ -1172,7 +1182,12 @@ export class SessionService {
       // resume the original suspended ticket session. The answer was
       // already written by the answer_question MCP tool during execution.
       if (exitCode === 0) {
-        this.resumeSuspendedTicket(projectId, ticketId, "(answered by answer bot)")
+        // Read the actual answer before resuming (clearQuestion inside
+        // resumeSuspendedTicket will delete the row).
+        const pendingAnswer = readResponse(projectId, ticketId);
+        const answerText = pendingAnswer?.answer || "(answered by answer bot)";
+
+        this.resumeSuspendedTicket(projectId, ticketId, answerText)
           .then((newSessionId) => {
             console.log(`[spawnAnswerBotWorker] Resumed original session ${newSessionId} after answer bot`);
           })
@@ -1205,8 +1220,11 @@ export class SessionService {
     // Safety: terminate any lingering session for this ticket
     await this.terminateExistingSession("ticket", ticketId);
 
-    // Get the Claude session ID from the most recent session for --resume
-    const claudeSessionId = getLatestClaudeSessionIdForTicket(ticketId);
+    // Read pending question to get the stored claudeSessionId (written at ask time).
+    // Falls back to "latest session" lookup for old pending files that lack this field.
+    const pendingQuestion = readQuestion(projectId, ticketId);
+    const claudeSessionId =
+      pendingQuestion?.claudeSessionId || getLatestClaudeSessionIdForTicket(ticketId);
     if (!claudeSessionId) {
       throw new Error(`No Claude session ID found for ticket ${ticketId} — cannot resume`);
     }
@@ -1226,9 +1244,9 @@ export class SessionService {
       });
     }
 
-    // Clear pending files
-    await clearQuestion(projectId, ticketId);
-    await clearResponse(projectId, ticketId);
+    // Clear pending rows
+    clearQuestion(projectId, ticketId);
+    clearResponse(projectId, ticketId);
 
     // Emit SSE event for the user's response
     eventBus.emit("ticket:message", {

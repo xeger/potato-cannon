@@ -1,6 +1,6 @@
 import type Database from "better-sqlite3";
 
-const CURRENT_SCHEMA_VERSION = 9;
+const CURRENT_SCHEMA_VERSION = 10;
 
 /**
  * Run database migrations.
@@ -43,6 +43,10 @@ export function runMigrations(db: Database.Database): void {
 
   if (version < 9) {
     migrateV9(db);
+  }
+
+  if (version < 10) {
+    migrateV10(db);
   }
 
   db.pragma(`user_version = ${CURRENT_SCHEMA_VERSION}`);
@@ -451,4 +455,25 @@ function migrateV9(db: Database.Database): void {
       db.exec(`UPDATE projects SET automated_phase_migration = disabled_phase_migration`);
     }
   }
+}
+
+/**
+ * V10: Pending questions table (replaces filesystem-based IPC)
+ */
+function migrateV10(db: Database.Database): void {
+  db.exec(`
+    CREATE TABLE IF NOT EXISTS pending_questions (
+      project_id        TEXT NOT NULL,
+      context_id        TEXT NOT NULL,
+      context_type      TEXT NOT NULL,
+      conversation_id   TEXT,
+      question          TEXT NOT NULL,
+      options           TEXT,
+      phase             TEXT,
+      claude_session_id TEXT,
+      asked_at          TEXT NOT NULL,
+      answer            TEXT,
+      PRIMARY KEY (project_id, context_id)
+    );
+  `);
 }

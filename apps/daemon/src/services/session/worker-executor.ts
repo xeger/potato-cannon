@@ -278,7 +278,7 @@ export async function startPhase(
 
   // Clear any stale pending question from a previous suspended session
   // This prevents a new phase execution from being misidentified as suspended on exit
-  await clearQuestion(projectId, ticketId);
+  clearQuestion(projectId, ticketId);
 
   // Validate phase
   validatePhaseWorkers(phaseConfig);
@@ -481,7 +481,7 @@ export async function handleAgentCompletion(
   // A suspended session exits cleanly (code 0) after calling chat_ask with suspend: true.
   // We must NOT advance the worker tree — the session will resume when the user responds.
   if (exitCode === 0 && ticketId) {
-    const pendingQuestion = await readQuestion(projectId, ticketId);
+    const pendingQuestion = readQuestion(projectId, ticketId);
     if (pendingQuestion) {
       // Check if phase is automated and has an answerBot
       const automated = await isPhaseAutomated(projectId, phase);

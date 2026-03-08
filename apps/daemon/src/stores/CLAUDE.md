@@ -28,7 +28,7 @@ The database uses WAL (Write-Ahead Logging) mode for better concurrency. Multipl
 
 Migrations use SQLite's `user_version` pragma. Each migration checks the version and applies changes if needed.
 
-**Current schema version:** 6
+**Current schema version:** 10
 
 **Adding a new migration:**
 
@@ -53,6 +53,10 @@ if (version < 6) {
 | V4 | Backfill conversation_id for existing tickets |
 | V5 | Tasks, provider channels, ralph feedback, artifacts, templates, config |
 | V6 | Add `branch_prefix` column to projects table (default: 'potato') |
+| V7 | Folders table and `folder_id` FK on projects |
+| V8 | WIP limits on projects, `pending_phase` on tickets |
+| V9 | Rename `disabled_phases` → `automated_phases` |
+| V10 | `pending_questions` table (replaces filesystem-based IPC) |
 
 ## Tables
 
@@ -484,18 +488,51 @@ writeDaemonInfo(info: DaemonInfo): Promise<void>
 
 ### chat.store.ts
 
-IPC for pending question/response files (used for Claude ↔ daemon communication).
+Pending question/response storage for session suspension and resumption. Backed by the `pending_questions` SQLite table (V10 migration). All functions are **synchronous** except `waitForResponse`.
+
+**Table:** `pending_questions`
+
+| Column | Type | Description |
+|--------|------|-------------|
+| `project_id` | TEXT PK | Project ID |
+| `context_id` | TEXT PK | Ticket, brainstorm, or artifact chat ID |
+| `context_type` | TEXT | `'ticket'` / `'brainstorm'` / `'artifact_chat'` (derived from contextId prefix) |
+| `conversation_id` | TEXT | Links to conversation_messages |
+| `question` | TEXT | The question text |
+| `options` | TEXT | JSON array of options, or NULL |
+| `phase` | TEXT | Workflow phase when asked |
+| `claude_session_id` | TEXT | Claude session ID for `--resume` |
+| `asked_at` | TEXT | ISO 8601 timestamp |
+| `answer` | TEXT | NULL until answered, then the response text |
 
 ```typescript
-writePendingQuestion(projectId: string, ticketId: string, question: PendingQuestion): Promise<void>
-readPendingQuestion(projectId: string, ticketId: string): Promise<PendingQuestion | null>
-clearQuestion(projectId: string, ticketId: string): Promise<void>
-writePendingResponse(projectId: string, ticketId: string, response: string): Promise<void>
-readPendingResponse(projectId: string, ticketId: string): Promise<string | null>
-clearResponse(projectId: string, ticketId: string): Promise<void>
+// Question operations (sync)
+writeQuestion(projectId, contextId, question: PendingQuestion): void
+readQuestion(projectId, contextId): PendingQuestion | null
+clearQuestion(projectId, contextId): void
+
+// Response operations (sync) — answer is an UPDATE on the same row
+writeResponse(projectId, contextId, response: PendingResponse): void
+readResponse(projectId, contextId): PendingResponse | null
+clearResponse(projectId, contextId): void  // deletes entire row (same as clearQuestion)
+
+// Polling (async)
+waitForResponse(projectId, contextId, timeoutMs?, signal?): Promise<string>
+
+// Scanning (sync)
+scanPendingResponses(): PendingContext[]           // answered tickets + brainstorms
+getPendingQuestionsByProject(): Map<string, string[]>  // ticket questions grouped by project
+
+// Cancellation registry (in-memory)
+createWaitController(contextId): AbortController
+cancelWaitForResponse(contextId): void
 ```
 
-**Note:** These files are transient IPC between daemon and Claude session. The actual message history is stored in SQLite via `conversation.store.ts`.
+**Context type derivation:** `brain_` prefix → brainstorm, `artchat_` prefix → artifact_chat, otherwise → ticket.
+
+**One row per context:** The composite PK `(project_id, context_id)` enforces one pending question per context. `writeQuestion` uses `INSERT OR REPLACE`, which resets the `answer` column to NULL.
+
+**Note:** These are transient IPC records (seconds to hours). The actual message history is stored in SQLite via `conversation.store.ts`. See `session/CLAUDE.md` for the full suspension and answer bot flow.
 
 ### artifact-chat.store.ts
 

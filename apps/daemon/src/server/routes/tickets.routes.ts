@@ -444,7 +444,7 @@ export function registerTicketRoutes(
         const projectId = decodeURIComponent(req.params.project);
         const ticketId = req.params.id;
 
-        const question = await readQuestion(projectId, ticketId);
+        const question = readQuestion(projectId, ticketId);
 
         res.json({ question });
       } catch (error) {
@@ -467,7 +467,7 @@ export function registerTicketRoutes(
           return;
         }
 
-        await writeResponse(projectId, ticketId, { answer: message });
+        writeResponse(projectId, ticketId, { answer: message });
 
         // Check if there's an active session for this ticket.
         // If not, this is a response to a suspended session — spawn a resumed session.

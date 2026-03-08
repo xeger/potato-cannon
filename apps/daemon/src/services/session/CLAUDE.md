@@ -189,6 +189,59 @@ Worktrees live at: `{projectPath}/.potato/worktrees/{ticketId}/`
 3. Set `requiresWorktree: true` if phase modifies code
 4. Configure `transitions.next` for automatic phase progression
 
+## Session Suspension and Answer Bot
+
+When an agent calls `chat_ask` with `suspend: true`, the session exits cleanly and waits for a human (or automated) response. The pending question is stored in the `pending_questions` SQLite table (see `chat.store.ts`).
+
+### Suspension Flow
+
+```
+Agent calls chat_ask(suspend: true)
+  → askAsync() writes row to pending_questions (answer = NULL)
+  → Agent exits with code 0
+
+worker-executor sees exit code 0 + pending question row exists
+  → Does NOT advance worker state
+  → If phase is automated + has answerBot worker:
+      → Spawns answer bot session
+  → Otherwise:
+      → Waits for human response via web UI / Telegram / Slack
+```
+
+### Answer Bot Flow
+
+```
+1. Answer bot spawns with pending question in its prompt
+2. Answer bot calls answer_question MCP tool
+   → POST /api/tickets/:project/:id/answer-question
+   → chatService.handleResponse()
+   → writeResponse() sets answer column on the pending_questions row
+3. Answer bot exits (code 0)
+4. onExit handler reads the actual answer: readResponse(projectId, ticketId)
+5. Calls resumeSuspendedTicket(projectId, ticketId, actualAnswer)
+6. resumeSuspendedTicket:
+   a. Reads claudeSessionId from the pending question row
+   b. Clears the pending_questions row
+   c. Spawns: claude --resume <claudeSessionId> --print <actualAnswer>
+7. Original agent resumes with the answer as its new user turn
+```
+
+**Critical**: `readResponse()` must happen before `resumeSuspendedTicket()` because the latter deletes the row. The answer text becomes the `--print` prompt for the resumed session — it's how the original agent receives the answer.
+
+### Human Response Flow
+
+Same as answer bot, but the response comes from a different source:
+
+- **Web UI**: `POST /api/tickets/:project/:id/input` → `writeResponse()` → `resumeSuspendedTicket()`
+- **Telegram/Slack**: Provider callback → `chatService.handleResponse()` → `writeResponse()` → `resumeSuspendedTicket()`
+
+### Key Invariants
+
+- One pending question per context (enforced by `PRIMARY KEY (project_id, context_id)`)
+- `answer` column is NULL until responded to; non-NULL means answered
+- The `claudeSessionId` stored at ask time is used for `--resume` (not a "latest session" lookup)
+- Answer bot does NOT participate in the worker executor state machine — no `handleAgentCompletion` call
+
 ## Ralph Loop Feedback
 
 Ralph loops now capture feedback from reviewers and inject it into subsequent iterations.
