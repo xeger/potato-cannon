@@ -1229,7 +1229,11 @@ export class SessionService {
       throw new Error(`No Claude session ID found for ticket ${ticketId} — cannot resume`);
     }
 
-    // Mark the pending question as answered in conversation store
+    // Mark the pending question as answered in conversation store.
+    // Only add the user message + SSE event here if the pending question hasn't
+    // already been answered by chatService.handleResponse() (which handles
+    // answerBot, Telegram, and Slack responses).  The web UI /input route
+    // bypasses handleResponse, so getPendingQuestion will still be non-null.
     if (ticket.conversationId) {
       const { answerQuestion, getPendingQuestion, addMessage } = await import(
         "../../stores/conversation.store.js"
@@ -1237,23 +1241,23 @@ export class SessionService {
       const pendingQuestion = getPendingQuestion(ticket.conversationId);
       if (pendingQuestion) {
         answerQuestion(pendingQuestion.id);
+        addMessage(ticket.conversationId, {
+          type: "user",
+          text: userResponse,
+        });
+
+        // Emit SSE event for the user's response
+        eventBus.emit("ticket:message", {
+          projectId,
+          ticketId,
+          message: { type: "user", text: userResponse, timestamp: new Date().toISOString() },
+        });
       }
-      addMessage(ticket.conversationId, {
-        type: "user",
-        text: userResponse,
-      });
     }
 
     // Clear pending rows
     clearQuestion(projectId, ticketId);
     clearResponse(projectId, ticketId);
-
-    // Emit SSE event for the user's response
-    eventBus.emit("ticket:message", {
-      projectId,
-      ticketId,
-      message: { type: "user", text: userResponse, timestamp: new Date().toISOString() },
-    });
 
     // Create stored session record
     const storedSession = createStoredSession({
