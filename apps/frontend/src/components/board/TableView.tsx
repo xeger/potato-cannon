@@ -107,6 +107,7 @@ export function TableView({ projectId }: TableViewProps) {
   const openTicketSheet = useAppStore((s) => s.openTicketSheet)
   const isTicketProcessingFn = useAppStore((s) => s.isTicketProcessing)
   const isTicketPendingFn = useAppStore((s) => s.isTicketPending)
+  const ticketSheetTicketId = useAppStore((s) => s.ticketSheetTicketId)
 
   // Queries
   const { data: projects } = useProjects()
@@ -287,6 +288,17 @@ export function TableView({ projectId }: TableViewProps) {
             {sortedTickets.map((ticket) => {
               const isProcessing = isTicketProcessingFn(projectId, ticket.id)
               const isPending = isTicketPendingFn(projectId, ticket.id)
+              const isRowSelected = ticketSheetTicketId === ticket.id
+
+              const rowStyle = isRowSelected
+                ? {
+                    backgroundColor: `color-mix(in srgb, var(--color-accent) 15%, ${
+                      currentProject?.swimlaneColors?.[ticket.phase]
+                        ? `color-mix(in srgb, ${currentProject.swimlaneColors[ticket.phase]} 15%, #161b22)`
+                        : 'rgba(33, 38, 45, 0.3)'
+                    })`
+                  }
+                : getRowBackgroundStyle(ticket.phase, currentProject?.swimlaneColors)
 
               return (
                 <tr
@@ -294,9 +306,10 @@ export function TableView({ projectId }: TableViewProps) {
                   onClick={() => handleRowClick(ticket.id)}
                   className={cn(
                     'hover:bg-bg-hover cursor-pointer transition-colors',
-                    isProcessing && 'bg-accent/5'
+                    isProcessing && !isRowSelected && 'bg-accent/5',
+                    isRowSelected && 'border-l-2 border-l-accent'
                   )}
-                  style={getRowBackgroundStyle(ticket.phase, currentProject?.swimlaneColors)}
+                  style={rowStyle}
                 >
                   <td className="px-4 py-3">
                     <span className="font-mono text-xs text-text-muted">
