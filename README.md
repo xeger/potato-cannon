@@ -41,8 +41,11 @@ git clone https://github.com/crathgeb/potato-cannon.git
 cd potato-cannon
 pnpm install
 
-# Build everything (daemon, frontend, and desktop app)
+# Build shared types, daemon, and frontend
 pnpm build
+
+# Package the desktop app (Electron)
+pnpm build:desktop
 
 # Find the built app in apps/desktop/release/
 # macOS: Potato Cannon.app, .dmg, .zip
@@ -186,15 +189,18 @@ pnpm dev
 # Or run individually
 pnpm dev:daemon      # Daemon with file watching
 pnpm dev:frontend    # Vite dev server
-pnpm dev:desktop     # Electron app
+pnpm dev:desktop     # Electron app (starts daemon + Electron together)
 
 # Build
-pnpm build           # Build all packages
+pnpm build           # Build shared types, daemon, and frontend
+pnpm build:desktop   # Package Electron app (separate step)
 pnpm typecheck       # TypeScript check
 
 # Test
 pnpm test            # Run all tests
 ```
+
+> **Note:** `pnpm build` and `pnpm build:desktop` are intentionally separate. The Electron packaging step rebuilds native modules for Electron's ABI, which is isolated to the packaged app bundle. Keeping them separate ensures `pnpm build` never interferes with daemon development.
 
 ### Project Structure
 
