@@ -294,6 +294,15 @@ export function ActivityTab({ projectId, ticketId, currentPhase: propPhase, hist
           </div>
         )}
 
+        {/* Task Panel - inside chat section */}
+        {currentPhase && (
+          <CollapsibleTaskPanel
+            projectId={projectId}
+            ticketId={ticketId}
+            currentPhase={currentPhase}
+          />
+        )}
+
         {/* Input area */}
         <div className="py-3 border-t border-border shrink-0">
           <div className="flex gap-2 px-4">
@@ -324,15 +333,6 @@ export function ActivityTab({ projectId, ticketId, currentPhase: propPhase, hist
           </p>
         </div>
       </div>
-
-      {/* Collapsible Task Panel - only renders when tasks exist */}
-      {currentPhase && (
-        <CollapsibleTaskPanel
-          projectId={projectId}
-          ticketId={ticketId}
-          currentPhase={currentPhase}
-        />
-      )}
 
       {/* Artifact Viewer Modal */}
       <ArtifactViewerFull
