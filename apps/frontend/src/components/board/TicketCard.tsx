@@ -28,6 +28,8 @@ export function TicketCard({ ticket, projectId, swimlaneColor }: TicketCardProps
   const activity = useAppStore((s) => s.getTicketActivity(projectId, ticket.id))
   const isPending = useAppStore((s) => s.isTicketPending(projectId, ticket.id))
   const isArchiving = useAppStore((s) => s.isTicketArchiving(projectId, ticket.id))
+  const ticketSheetTicketId = useAppStore((s) => s.ticketSheetTicketId)
+  const isSelected = ticketSheetTicketId === ticket.id
   const [archiveConfirmOpen, setArchiveConfirmOpen] = useState(false)
   const archiveTicket = useArchiveTicket()
 
@@ -90,6 +92,8 @@ export function TicketCard({ ticket, projectId, swimlaneColor }: TicketCardProps
     <ListItemCard
       asChild
       isActive={isDragging}
+      isSelected={isSelected}
+      selectedVariant="bold"
       tintColor={swimlaneColor}
     >
       <div

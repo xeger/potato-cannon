@@ -38,6 +38,7 @@ vi.mock('@/stores/appStore', () => ({
       isTicketPending: mockIsTicketPending,
       isTicketArchiving: mockIsTicketArchiving,
       getTicketActivity: mockGetTicketActivity,
+      ticketSheetTicketId: 'POT-1',
     }
     return selector(state)
   },
@@ -190,5 +191,33 @@ describe('TicketCard - Pending Phase Indicator', () => {
     // The ? badge should show instead
     expect(screen.getByText('?')).toBeTruthy()
     expect(screen.queryByText('Waiting for Architecture')).toBeNull()
+  })
+})
+
+describe('TicketCard - Selected State', () => {
+  beforeEach(() => {
+    vi.clearAllMocks()
+  })
+
+  afterEach(() => {
+    cleanup()
+  })
+
+  it('should pass isSelected to ListItemCard when ticketSheetTicketId matches', () => {
+    render(<TicketCard ticket={baseTicket as any} projectId="proj-1" />)
+
+    // The ListItemCard should receive isSelected - we verify via the rendered classes
+    // Bold selected variant applies border-accent/50 and ring-1
+    const card = screen.getByText('Test Ticket').closest('[class*="rounded-lg"]') as HTMLElement
+    expect(card.className).toContain('border-accent/50')
+    expect(card.className).toContain('ring-1')
+  })
+
+  it('should not show selected state when ticketSheetTicketId does not match', () => {
+    render(<TicketCard ticket={{ ...baseTicket, id: 'POT-99' } as any} projectId="proj-1" />)
+
+    const card = screen.getByText('Test Ticket').closest('[class*="rounded-lg"]') as HTMLElement
+    expect(card.className).not.toContain('border-accent/50')
+    expect(card.className).not.toContain('ring-1')
   })
 })
