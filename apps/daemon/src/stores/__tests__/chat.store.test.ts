@@ -17,26 +17,8 @@ import {
 import { initDatabase, getDatabase } from "../db.js";
 
 before(() => {
+  // initDatabase runs migrations including V10 which creates pending_questions
   initDatabase();
-  const db = getDatabase();
-
-  // Ensure pending_questions table exists (handles case where DB version
-  // was bumped to 10 before the migration was added).
-  db.exec(`
-    CREATE TABLE IF NOT EXISTS pending_questions (
-      project_id        TEXT NOT NULL,
-      context_id        TEXT NOT NULL,
-      context_type      TEXT NOT NULL,
-      conversation_id   TEXT,
-      question          TEXT NOT NULL,
-      options           TEXT,
-      phase             TEXT,
-      claude_session_id TEXT,
-      asked_at          TEXT NOT NULL,
-      answer            TEXT,
-      PRIMARY KEY (project_id, context_id)
-    );
-  `);
 });
 
 // ─── Helpers ─────────────────────────────────────────────────────────

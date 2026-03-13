@@ -108,7 +108,7 @@ export function registerTicketRoutes(
       const oldTicket = await getTicket(projectId, ticketId);
       const oldPhase = oldTicket.phase;
 
-      // Resolve target phase if moving to a potentially disabled phase
+      // Resolve target phase if moving to a potentially automated phase
       let resolvedPhase = ticketUpdates.phase;
       if (ticketUpdates.phase && ticketUpdates.phase !== oldPhase) {
         resolvedPhase = (await resolveTargetPhase(

@@ -2,6 +2,13 @@
 
 All notable changes to the product-development workflow.
 
+## [1.5.1] - 2026-03-08
+
+### Fixed
+
+- Pending questions now stored in SQLite instead of filesystem IPC files, eliminating file I/O race conditions.
+- Chat history moved into SQLite database for reliable persistence across daemon restarts.
+
 ## [1.5.0] - 2026-03-05
 
 ### New

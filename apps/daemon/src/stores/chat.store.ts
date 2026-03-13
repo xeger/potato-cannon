@@ -163,7 +163,9 @@ export function clearResponse(
   projectId: string,
   contextId: string,
 ): void {
-  // Same as clearQuestion — deletes the entire row
+  // Deletes the entire row — identical to clearQuestion. Both question and
+  // answer live in the same row, so a single DELETE handles full cleanup.
+  // Callers don't need to call both clearResponse and clearQuestion.
   const db = getDatabase();
   db.prepare(`
     DELETE FROM pending_questions WHERE project_id = ? AND context_id = ?

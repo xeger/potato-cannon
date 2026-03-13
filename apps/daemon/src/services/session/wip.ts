@@ -7,6 +7,9 @@ import type { SessionService } from "./index.js";
 
 const EXCLUDED_PHASES = ["Ideas", "Blocked", "Done"];
 
+/** Tracks phases currently being drained to prevent re-entrant cascades. */
+const drainingPhases = new Set<string>();
+
 export function isPhaseAtWipLimit(projectId: string, phase: string): boolean {
   if (EXCLUDED_PHASES.includes(phase)) return false;
 
@@ -38,6 +41,11 @@ export function setupWipDrainListener(sessionService: SessionService): void {
     async (data: { projectId: string; ticketId: string; from: string; to: string }) => {
       const { projectId, from: departedPhase } = data;
 
+      // Re-entrancy guard: draining a pending ticket emits ticket:moved,
+      // which would trigger this handler again. Skip if already draining.
+      const drainKey = `${projectId}:${departedPhase}`;
+      if (drainingPhases.has(drainKey)) return;
+
       const project = getProjectById(projectId);
       const limit = project?.wipLimits?.[departedPhase];
       if (!limit) return;
@@ -65,30 +73,35 @@ export function setupWipDrainListener(sessionService: SessionService): void {
         `[wipDrain] Space opened in ${departedPhase}, advancing ticket ${pendingTicketId}`
       );
 
-      const ticket = await updateTicket(projectId, pendingTicketId, {
-        phase: departedPhase,
-        pendingPhase: null,
-      });
+      drainingPhases.add(drainKey);
+      try {
+        const ticket = await updateTicket(projectId, pendingTicketId, {
+          phase: departedPhase,
+          pendingPhase: null,
+        });
 
-      eventBus.emit("ticket:updated", { projectId, ticket });
-      eventBus.emit("ticket:moved", {
-        projectId,
-        ticketId: pendingTicketId,
-        from: oldPhase,
-        to: departedPhase,
-      });
+        eventBus.emit("ticket:updated", { projectId, ticket });
+        eventBus.emit("ticket:moved", {
+          projectId,
+          ticketId: pendingTicketId,
+          from: oldPhase,
+          to: departedPhase,
+        });
 
-      const phaseConfig = await getPhaseConfig(projectId, departedPhase);
-      if (phaseConfig?.workers && phaseConfig.workers.length > 0) {
-        if (project?.path) {
-          sessionService
-            .spawnForTicket(projectId, pendingTicketId, departedPhase, project.path)
-            .catch((error: Error) => {
-              console.error(
-                `[wipDrain] Failed to spawn session for ${pendingTicketId}: ${error.message}`
-              );
-            });
+        const phaseConfig = await getPhaseConfig(projectId, departedPhase);
+        if (phaseConfig?.workers && phaseConfig.workers.length > 0) {
+          if (project?.path) {
+            sessionService
+              .spawnForTicket(projectId, pendingTicketId, departedPhase, project.path)
+              .catch((error: Error) => {
+                console.error(
+                  `[wipDrain] Failed to spawn session for ${pendingTicketId}: ${error.message}`
+                );
+              });
+          }
         }
+      } finally {
+        drainingPhases.delete(drainKey);
       }
     }
   );

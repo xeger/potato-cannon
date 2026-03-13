@@ -297,6 +297,7 @@ export class SessionService {
     additionalDisallowedTools?: string[],
     model?: string,
     claudeResumeSessionId?: string,
+    onExitOverride?: (exitCode: number) => void,
   ): string {
     // Save prompt for debugging (non-blocking)
     if (ticketId && phase) {
@@ -507,8 +508,10 @@ export class SessionService {
 
       this.eventEmitter.emit("session:ended", { sessionId, ...endMeta });
 
-      // Handle agent completion via new executor
-      if (phase && ticketId) {
+      if (onExitOverride) {
+        onExitOverride(exitCode);
+      } else if (phase && ticketId) {
+        // Handle agent completion via worker executor
         handleAgentCompletion(
           projectId,
           ticketId,
@@ -985,217 +988,52 @@ export class SessionService {
       stage: 0,
     };
 
-    // Save prompt for debugging (non-blocking)
-    savePrompt(projectId, ticketId, answerBotWorker.source, phase, 0, fullPrompt).catch(
-      (err) =>
-        console.error(
-          `[spawnAnswerBotWorker] Failed to save prompt: ${err.message}`,
-        ),
-    );
+    // Answer bot exit handler — does NOT call handleAgentCompletion.
+    // Instead, reads the answer and resumes the suspended ticket.
+    const onAnswerBotExit = (exitCode: number) => {
+      if (exitCode !== 0) return;
 
-    logToDaemon(projectId, ticketId, `Spawning answer bot session ${sessionId}`, {
-      agentType: answerBotWorker.source,
-      phase,
-      model: resolvedModel || "default",
-    }).catch(() => {});
-
-    const logPath = this.getSessionLogPath(sessionId);
-    const logStream = createWriteStream(logPath, { flags: "a" });
-
-    logStream.write(
-      JSON.stringify({
-        type: "session_start",
-        meta,
-        timestamp: new Date().toISOString(),
-      }) + "\n",
-    );
-
-    // Get path to compiled MCP proxy (dist/mcp/proxy.js)
-    const mcpProxyPath = path.join(__dirname, "..", "..", "mcp", "proxy.js");
-
-    // Get full path to node
-    let nodePath: string;
-    try {
-      nodePath = execSync("which node", { encoding: "utf-8" }).trim();
-    } catch {
-      const fallbacks = [
-        path.join(process.env.HOME || "", ".nvm", "versions", "node", "v22.14.0", "bin", "node"),
-        path.join(process.env.HOME || "", ".local", "bin", "node"),
-        "/usr/local/bin/node",
-      ];
-      nodePath = fallbacks.find((p) => existsSync(p)) || "node";
-    }
-
-    const mcpConfig = {
-      mcpServers: {
-        "potato-cannon": {
-          command: nodePath,
-          args: [mcpProxyPath],
-          env: {
-            POTATO_PROJECT_ID: projectId,
-            POTATO_TICKET_ID: ticketId,
-            POTATO_BRAINSTORM_ID: "",
-          },
-        },
-      },
-    };
-
-    const args = [
-      "--dangerously-skip-permissions",
-      "--output-format",
-      "stream-json",
-      "--verbose",
-    ];
-
-    if (resolvedModel) {
-      args.push("--model", resolvedModel);
-    }
-
-    args.push("--mcp-config", JSON.stringify(mcpConfig));
-
-    const disallowed = ["Skill(superpowers:*)"];
-    args.push("--disallowedTools", disallowed.join(","));
-
-    args.push("--print", fullPrompt);
-
-    let claudePath: string;
-    try {
-      claudePath = execSync("which claude", { encoding: "utf-8" }).trim();
-    } catch {
-      claudePath = path.join(process.env.HOME || "", ".local", "bin", "claude");
-    }
-
-    console.log(`[spawnAnswerBotWorker] Spawning answer bot at: ${claudePath}`);
-
-    const proc = pty.spawn(claudePath, args, {
-      name: "xterm-256color",
-      cols: 120,
-      rows: 40,
-      cwd: projectPath,
-      env: {
-        ...process.env,
-        POTATO_PROJECT_ID: projectId,
-        POTATO_TICKET_ID: ticketId,
-        POTATO_BRAINSTORM_ID: "",
-      },
-    });
-
-    console.log(`[spawnAnswerBotWorker] Answer bot PTY spawned, pid: ${proc.pid}`);
-
-    let exitResolver!: () => void;
-    const exitPromise = new Promise<void>((resolve) => {
-      exitResolver = resolve;
-    });
-
-    this.sessions.set(sessionId, {
-      process: proc,
-      meta,
-      logStream,
-      exitPromise,
-      exitResolver,
-    });
-
-    this.eventEmitter.emit("session:started", { sessionId, ...meta });
-
-    let claudeSessionIdCaptured = false;
-    proc.onData((data: string) => {
-      const lines = data.split("\n").filter(Boolean);
-      for (const line of lines) {
-        try {
-          const event = JSON.parse(line);
-          const logEntry = { ...event, timestamp: new Date().toISOString() };
-          logStream.write(JSON.stringify(logEntry) + "\n");
-          this.eventEmitter.emit("session:output", {
-            sessionId,
-            ...meta,
-            event: logEntry,
-          });
-
-          // Capture claude_session_id for the answerBot session.
-          // This is safe now because resumeSuspendedTicket reads the
-          // claudeSessionId from the pending question file, not from
-          // a "latest session" lookup.
-          if (
-            !claudeSessionIdCaptured &&
-            event.type === "system" &&
-            event.session_id
-          ) {
-            claudeSessionIdCaptured = true;
-            updateClaudeSessionId(sessionId, event.session_id);
-          }
-        } catch {
-          const logEntry = {
-            type: "raw",
-            content: line,
-            timestamp: new Date().toISOString(),
-          };
-          logStream.write(JSON.stringify(logEntry) + "\n");
+      // The answer_question MCP tool submits the answer via an HTTP
+      // round-trip. If the PTY exits before that request completes,
+      // readResponse() would return null. Poll briefly to allow it.
+      const waitForAnswer = async (): Promise<string> => {
+        for (let i = 0; i < 10; i++) {
+          const pending = readResponse(projectId, ticketId);
+          if (pending?.answer) return pending.answer;
+          await new Promise((r) => setTimeout(r, 200));
         }
-      }
-    });
-
-    proc.onExit(({ exitCode }) => {
-      // Answer bot session completed — no need to advance worker state.
-      // The answer_question MCP tool already submitted the answer via
-      // the /answer-question endpoint, which called chatService.handleResponse
-      // and resumed the suspended ticket.
-      console.log(
-        `[spawnAnswerBotWorker] Answer bot session ${sessionId} exited with code ${exitCode}`,
-      );
-
-      logToDaemon(projectId, ticketId, `Answer bot session ${sessionId} exited`, {
-        agentType: answerBotWorker.source,
-        exitCode,
-        phase,
-      }).catch(() => {});
-
-      const endMeta: SessionMeta = {
-        ...meta,
-        status: exitCode === 0 ? "completed" : "failed",
-        exitCode,
-        endedAt: new Date().toISOString(),
+        return "(answered by answer bot)";
       };
 
-      logStream.write(
-        JSON.stringify({
-          type: "session_end",
-          meta: endMeta,
-          timestamp: new Date().toISOString(),
-        }) + "\n",
-      );
-      logStream.end();
+      waitForAnswer()
+        .then((answerText) =>
+          this.resumeSuspendedTicket(projectId, ticketId, answerText)
+        )
+        .then((newSessionId) => {
+          console.log(`[spawnAnswerBotWorker] Resumed original session ${newSessionId} after answer bot`);
+        })
+        .catch((err) => {
+          console.error(`[spawnAnswerBotWorker] Failed to resume suspended ticket: ${(err as Error).message}`);
+        });
+    };
 
-      const session = this.sessions.get(sessionId);
-      if (session?.exitResolver) {
-        session.exitResolver();
-      }
-
-      this.sessions.delete(sessionId);
-      endStoredSession(sessionId, exitCode);
-      this.eventEmitter.emit("session:ended", { sessionId, ...endMeta });
-
-      // Intentionally NO handleAgentCompletion call here.
-      // The answer bot is fire-and-forget — it does not participate
-      // in the worker executor state machine.
-
-      // Now that the answer bot session has ended and been cleaned up,
-      // resume the original suspended ticket session. The answer was
-      // already written by the answer_question MCP tool during execution.
-      if (exitCode === 0) {
-        // Read the actual answer before resuming (clearQuestion inside
-        // resumeSuspendedTicket will delete the row).
-        const pendingAnswer = readResponse(projectId, ticketId);
-        const answerText = pendingAnswer?.answer || "(answered by answer bot)";
-
-        this.resumeSuspendedTicket(projectId, ticketId, answerText)
-          .then((newSessionId) => {
-            console.log(`[spawnAnswerBotWorker] Resumed original session ${newSessionId} after answer bot`);
-          })
-          .catch((err) => {
-            console.error(`[spawnAnswerBotWorker] Failed to resume suspended ticket: ${(err as Error).message}`);
-          });
-      }
-    });
+    this.spawnClaudeSession(
+      sessionId,
+      meta,
+      fullPrompt,
+      projectPath,
+      projectId,
+      ticketId,
+      "",
+      answerBotWorker.source,
+      phase,
+      projectPath,
+      0,
+      undefined,
+      resolvedModel ?? undefined,
+      undefined,
+      onAnswerBotExit,
+    );
   }
 
   /**
