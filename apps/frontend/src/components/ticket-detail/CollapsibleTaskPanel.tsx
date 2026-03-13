@@ -111,7 +111,7 @@ export function CollapsibleTaskPanel({ projectId, ticketId, currentPhase }: Coll
 
       {/* Task Detail Dialog */}
       <Dialog open={!!selectedTask} onOpenChange={() => setSelectedTask(null)}>
-        <DialogContent className="bg-bg-secondary border-border max-w-lg">
+        <DialogContent className="bg-bg-secondary border-border max-w-lg" aria-describedby="task-dialog-description">
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2">
               {selectedTask && getStatusIcon(selectedTask.status)}
@@ -119,7 +119,7 @@ export function CollapsibleTaskPanel({ projectId, ticketId, currentPhase }: Coll
             </DialogTitle>
           </DialogHeader>
           {selectedTask && (
-            <div className="space-y-3">
+            <div id="task-dialog-description" className="space-y-3">
               <p className="text-sm text-text-primary">{selectedTask.description}</p>
               {selectedTask.body && (
                 <div
