@@ -1,21 +1,12 @@
-import { useQuery } from '@tanstack/react-query'
 import { Square, CheckSquare } from 'lucide-react'
-import { api } from '@/api/client'
 import type { Task } from '@potato-cannon/shared'
 
 interface TaskListProps {
-  projectId: string
-  ticketId: string
-  currentPhase: string
+  tasks: Task[]
+  onTaskClick?: (task: Task) => void
 }
 
-export function TaskList({ projectId, ticketId, currentPhase }: TaskListProps) {
-  // Fetch tasks using react-query
-  const { data: tasks = [] } = useQuery<Task[]>({
-    queryKey: ['tasks', projectId, ticketId, currentPhase],
-    queryFn: () => api.getTicketTasks(projectId, ticketId, currentPhase),
-  })
-
+export function TaskList({ tasks, onTaskClick }: TaskListProps) {
   if (tasks.length === 0) {
     return null
   }
@@ -26,7 +17,15 @@ export function TaskList({ projectId, ticketId, currentPhase }: TaskListProps) {
         <div className="text-xs font-medium text-text-secondary mb-2">Tasks</div>
         <ul className="space-y-1">
           {tasks.map((task) => (
-            <li key={task.id} className="flex items-start gap-2">
+            <li
+              key={task.id}
+              className="flex items-start gap-2 cursor-pointer hover:bg-bg-primary/50 p-1 rounded transition-colors"
+              onClick={() => onTaskClick?.(task)}
+              data-testid={`task-item-${task.id}`}
+              role="button"
+              tabIndex={0}
+              onKeyDown={(e) => e.key === 'Enter' && onTaskClick?.(task)}
+            >
               {task.status === 'completed' ? (
                 <CheckSquare className="h-4 w-4 text-accent shrink-0 mt-0.5" />
               ) : (
