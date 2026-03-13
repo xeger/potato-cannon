@@ -2,6 +2,17 @@
 
 All notable changes to the product-development workflow.
 
+## [1.5.2] - 2026-03-13
+
+### Improved
+
+- **Builder agent rewritten for compliance** - Replaced Liking-based framing ("talented engineer praised throughout career") with Authority-driven imperative instructions
+- Differentiated ralph loop vs. fresh start notification messages (were previously identical)
+- Added "Good communication" section requiring periodic `potato:notify-user` updates throughout the process
+- Self-review converted from soft questions ("Did I...?") to imperative checks ("Open the spec. Read each requirement. Confirm.")
+- Added bright-line rule preventing step skipping
+- Added "Red Flags" rationalization table to block five common excuses for cutting corners
+
 ## [1.5.1] - 2026-03-08
 
 ### Fixed
