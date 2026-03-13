@@ -104,6 +104,7 @@ export function useSSE() {
       eventSource.addEventListener('session:ended', (e) => {
         queryClient.refetchQueries({ queryKey: ['sessions'] })
         queryClient.refetchQueries({ queryKey: ['tickets'] })
+        queryClient.refetchQueries({ queryKey: ['brainstorms'] })
         // Clear processing state for this ticket
         try {
           const data = JSON.parse(e.data) as SSEEventData
