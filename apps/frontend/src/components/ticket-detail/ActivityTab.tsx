@@ -250,7 +250,7 @@ export function ActivityTab({ projectId, ticketId, currentPhase: propPhase, hist
                 Loading conversation...
               </div>
             )}
-            {!isLoadingHistory && messages.length === 0 && !isWaitingForResponse && (
+            {!isLoadingHistory && messages.length === 0 && !isWaitingForResponse && !currentActivity && (
               <div className="text-center py-8 text-text-muted text-sm">
                 No messages yet
               </div>

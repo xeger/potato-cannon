@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
-import { render, screen, cleanup } from '@testing-library/react'
+import { render, screen, cleanup, waitFor } from '@testing-library/react'
 import { ActivityTab } from './ActivityTab'
 
 // Mock DOM APIs
@@ -19,19 +19,13 @@ vi.mock('@tanstack/react-query', () => ({
 
 // Mock SSE hooks - store callbacks so we can trigger them
 let sessionOutputCallback: ((data: Record<string, unknown>) => void) | null = null
-let ticketMessageCallback: ((data: Record<string, unknown>) => void) | null = null
-let sessionEndedCallback: ((data: Record<string, unknown>) => void) | null = null
 
 vi.mock('@/hooks/useSSE', () => ({
   useSessionOutput: vi.fn((cb: (data: Record<string, unknown>) => void) => {
     sessionOutputCallback = cb
   }),
-  useTicketMessage: vi.fn((cb: (data: Record<string, unknown>) => void) => {
-    ticketMessageCallback = cb
-  }),
-  useSessionEnded: vi.fn((cb: (data: Record<string, unknown>) => void) => {
-    sessionEndedCallback = cb
-  }),
+  useTicketMessage: vi.fn(() => {}),
+  useSessionEnded: vi.fn(() => {}),
 }))
 
 // Mock API client
@@ -64,8 +58,6 @@ describe('ActivityTab', () => {
   beforeEach(() => {
     vi.clearAllMocks()
     sessionOutputCallback = null
-    ticketMessageCallback = null
-    sessionEndedCallback = null
   })
 
   afterEach(() => {
@@ -84,7 +76,7 @@ describe('ActivityTab', () => {
     expect(emptyStateElement).toBeTruthy()
   })
 
-  it('hides "No messages yet" when activity indicator is showing', () => {
+  it('hides "No messages yet" when activity indicator is showing', async () => {
     render(
       <ActivityTab
         projectId="test-project"
@@ -110,8 +102,10 @@ describe('ActivityTab', () => {
       },
     })
 
-    // "No messages yet" should be hidden
-    const emptyStateElement = screen.queryByText('No messages yet')
-    expect(emptyStateElement).toBeNull()
+    // "No messages yet" should be hidden after state update
+    await waitFor(() => {
+      const emptyStateElement = screen.queryByText('No messages yet')
+      expect(emptyStateElement).toBeNull()
+    })
   })
 })
