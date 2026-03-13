@@ -27,7 +27,6 @@ import { useSSE } from './useSSE'
 
 describe('useSSE - session:ended brainstorm refetch', () => {
   let queryClient: QueryClient
-  let mockEventSource: any
   let eventListeners: Record<string, Function>
 
   beforeEach(() => {
@@ -37,14 +36,6 @@ describe('useSSE - session:ended brainstorm refetch', () => {
     vi.spyOn(queryClient, 'refetchQueries')
 
     eventListeners = {}
-    mockEventSource = {
-      addEventListener: vi.fn((event: string, handler: Function) => {
-        eventListeners[event] = handler
-      }),
-      close: vi.fn(),
-      onopen: null as any,
-      onerror: null as any,
-    }
 
     class MockEventSource {
       addEventListener(event: string, handler: Function) {
