@@ -24,6 +24,7 @@ import { DEFAULT_PHASES } from "../../types/index.js";
 import { readQuestion, writeResponse } from "../../stores/chat.store.js";
 import { getActiveSessionForTicket } from "../../stores/session.store.js";
 import { getMessages } from "../../stores/conversation.store.js";
+import { updateBrainstorm } from "../../stores/brainstorm.store.js";
 import type { SessionService } from "../../services/session/index.js";
 import type { Project } from "../../types/config.types.js";
 import type { TicketPhase } from "../../types/ticket.types.js";
@@ -68,9 +69,10 @@ export function registerTicketRoutes(
   app.post("/api/tickets/:project", async (req: Request, res: Response) => {
     try {
       const projectId = decodeURIComponent(req.params.project);
-      const { title, description } = req.body as {
+      const { title, description, brainstormId } = req.body as {
         title?: string;
         description?: string;
+        brainstormId?: string;
       };
 
       if (!title) {
@@ -80,6 +82,21 @@ export function registerTicketRoutes(
 
       const ticket = await createTicket(projectId, { title, description });
       eventBus.emit("ticket:created", { projectId, ticket });
+
+      // Link brainstorm to created ticket
+      if (brainstormId) {
+        try {
+          const brainstorm = await updateBrainstorm(projectId, brainstormId, {
+            createdTicketId: ticket.id,
+          });
+          if (brainstorm) {
+            eventBus.emit('brainstorm:updated', { projectId, brainstorm });
+          }
+        } catch (err) {
+          console.error(`[createTicket] Failed to link brainstorm ${brainstormId}: ${(err as Error).message}`);
+        }
+      }
+
       res.json(ticket);
     } catch (error) {
       res.status(500).json({ error: (error as Error).message });
