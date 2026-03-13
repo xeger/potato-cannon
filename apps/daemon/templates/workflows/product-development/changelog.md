@@ -2,7 +2,13 @@
 
 All notable changes to the product-development workflow.
 
-## [1.5.2] - 2026-03-13
+## [1.7.0] - 2026-03-13
+
+### Improved
+
+- **Taskmaster agent blocks manual verification tickets** - Taskmaster now skips any "manual verification", "manual testing", or "manual QA" tickets from the specification instead of creating tasks that stall the automated pipeline forever. Skipped tickets are reported in the completion announcement.
+
+## [1.6.0] - 2026-03-13
 
 ### Improved
 
