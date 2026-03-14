@@ -1,6 +1,5 @@
 import { useState, useCallback } from 'react'
 import { MessageSquare, Clock } from 'lucide-react'
-import { Badge } from '@/components/ui/badge'
 import { cn, timeAgo } from '@/lib/utils'
 import { useBrainstormMessage } from '@/hooks/useSSE'
 import { useAppStore } from '@/stores/appStore'
@@ -84,14 +83,6 @@ function StatusIndicator({
   status: Brainstorm['status']
   hasUnseenQuestion: boolean
 }) {
-  if (status === 'completed') {
-    return (
-      <Badge variant="secondary" className="shrink-0 text-xs">
-        completed
-      </Badge>
-    )
-  }
-
   if (hasUnseenQuestion) {
     return (
       <span className="shrink-0 flex items-center justify-center w-2 h-2 bg-accent rounded-full" />

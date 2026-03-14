@@ -53,7 +53,7 @@ import {
   isTerminalPhase,
   listTickets,
 } from "../stores/ticket.store.js";
-import { getBrainstorm } from "../stores/brainstorm.store.js";
+import { getBrainstorm, updateBrainstorm } from "../stores/brainstorm.store.js";
 import {
   endStoredSession,
   createStoredSession,
@@ -501,20 +501,44 @@ export async function main(): Promise<void> {
       sessionId: string;
       projectId: string;
       ticketId?: string;
+      brainstormId?: string;
       exitCode?: number;
     }) => {
-      const { sessionId, projectId, ticketId, exitCode } = data;
-      if (!projectId || !ticketId) return;
+      const { sessionId, projectId, ticketId, brainstormId, exitCode } = data;
 
-      console.log(
-        `[session:ended] Session ${sessionId} ended for ticket ${ticketId} with exit code ${exitCode}`,
-      );
-      // Emit ticket update so frontend knows it's no longer processing
-      try {
-        const ticket = await getTicket(projectId, ticketId);
-        eventBus.emit("ticket:updated", { projectId, ticket });
-      } catch {
-        // Ignore
+      // Handle ticket session end
+      if (projectId && ticketId) {
+        console.log(
+          `[session:ended] Session ${sessionId} ended for ticket ${ticketId} with exit code ${exitCode}`,
+        );
+        try {
+          const ticket = await getTicket(projectId, ticketId);
+          eventBus.emit("ticket:updated", { projectId, ticket });
+        } catch {
+          // Ignore
+        }
+      }
+
+      // Handle brainstorm session end
+      if (projectId && brainstormId) {
+        console.log(
+          `[session:ended] Session ${sessionId} ended for brainstorm ${brainstormId} with exit code ${exitCode}`,
+        );
+        try {
+          const stillActive = getActiveSessionForBrainstorm(brainstormId);
+          const pendingQuestion = readQuestion(projectId, brainstormId);
+
+          if (!stillActive && !pendingQuestion) {
+            const brainstorm = await updateBrainstorm(projectId, brainstormId, {
+              status: 'completed',
+            });
+            if (brainstorm) {
+              eventBus.emit('brainstorm:updated', { projectId, brainstorm });
+            }
+          }
+        } catch {
+          // Ignore - brainstorm may have been deleted
+        }
       }
     },
   );

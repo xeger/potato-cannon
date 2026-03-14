@@ -97,7 +97,7 @@ describe('BrainstormCard', () => {
     expect(button?.className).not.toContain('thinking-shimmer')
   })
 
-  it('shows completed badge when status is completed', () => {
+  it('does not show completed badge when status is completed', () => {
     const completedBrainstorm = {
       ...baseBrainstorm,
       status: 'completed' as const,
@@ -105,9 +105,7 @@ describe('BrainstormCard', () => {
     render(
       <BrainstormCard brainstorm={completedBrainstorm} projectId="proj-1" />
     )
-    // Use getAllByText to handle React.StrictMode double-renders in dev
-    const completedBadges = screen.getAllByText('completed')
-    expect(completedBadges.length).toBeGreaterThan(0)
+    expect(screen.queryByText('completed')).toBeNull()
   })
 
   it('calls openBrainstormSheet on click', () => {
