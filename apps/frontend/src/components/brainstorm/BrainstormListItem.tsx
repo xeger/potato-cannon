@@ -1,6 +1,5 @@
 import { useState, useCallback } from 'react'
 import { MessageSquare } from 'lucide-react'
-import { Badge } from '@/components/ui/badge'
 import { ListItemCard } from '@/components/ui/list-item-card'
 import { cn, timeAgo } from '@/lib/utils'
 import { useBrainstormMessage } from '@/hooks/useSSE'
@@ -93,15 +92,6 @@ function StatusIndicator({
   status: Brainstorm['status']
   hasUnseenQuestion: boolean
 }) {
-  // Completed brainstorms show completed badge
-  if (status === 'completed') {
-    return (
-      <Badge variant="secondary" className="shrink-0 text-xs">
-        completed
-      </Badge>
-    )
-  }
-
   // Active brainstorm with unseen pending question - show unread indicator
   if (hasUnseenQuestion) {
     return (
