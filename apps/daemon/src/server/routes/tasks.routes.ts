@@ -6,6 +6,7 @@ import {
   listTasks,
   updateTaskStatus,
   addTaskComment,
+  getTaskComments,
 } from "../../stores/task.store.js";
 import { getTicket } from "../../stores/ticket.store.js";
 import { eventBus } from "../../utils/event-bus.js";
@@ -147,6 +148,28 @@ export function registerTaskRoutes(app: Express): void {
         });
 
         res.json(task);
+      } catch (error) {
+        res.status(500).json({ error: (error as Error).message });
+      }
+    },
+  );
+
+  // List comments for a task
+  app.get(
+    "/api/tickets/:project/:id/tasks/:taskId/comments",
+    (req: Request, res: Response) => {
+      try {
+        const ticketId = req.params.id;
+        const taskIdParam = req.params.taskId;
+
+        const existingTask = resolveTaskId(ticketId, taskIdParam);
+        if (!existingTask) {
+          res.status(404).json({ error: "Task not found" });
+          return;
+        }
+
+        const comments = getTaskComments(existingTask.id);
+        res.json(comments);
       } catch (error) {
         res.status(500).json({ error: (error as Error).message });
       }

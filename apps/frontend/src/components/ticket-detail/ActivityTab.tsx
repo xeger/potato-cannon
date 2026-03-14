@@ -8,7 +8,7 @@ import { Textarea } from '@/components/ui/textarea'
 import { cn, timeAgo, formatToolActivity } from '@/lib/utils'
 import { Linkify } from '@/components/ui/linkify'
 import { ArtifactViewerFull } from './ArtifactViewerFull'
-import { TaskList } from './TaskList'
+import { CollapsibleTaskPanel } from './CollapsibleTaskPanel'
 import { RestartPhaseButton } from './RestartPhaseButton'
 import type { Artifact, TicketHistoryEntry } from '@potato-cannon/shared'
 import { useSessionOutput, useTicketMessage, useSessionEnded } from '@/hooks/useSSE'
@@ -294,6 +294,15 @@ export function ActivityTab({ projectId, ticketId, currentPhase: propPhase, hist
           </div>
         )}
 
+        {/* Task Panel - inside chat section */}
+        {currentPhase && (
+          <CollapsibleTaskPanel
+            projectId={projectId}
+            ticketId={ticketId}
+            currentPhase={currentPhase}
+          />
+        )}
+
         {/* Input area */}
         <div className="py-3 border-t border-border shrink-0">
           <div className="flex gap-2 px-4">
@@ -324,15 +333,6 @@ export function ActivityTab({ projectId, ticketId, currentPhase: propPhase, hist
           </p>
         </div>
       </div>
-
-      {/* Task List - only renders when tasks exist */}
-      {currentPhase && (
-        <TaskList
-          projectId={projectId}
-          ticketId={ticketId}
-          currentPhase={currentPhase}
-        />
-      )}
 
       {/* Artifact Viewer Modal */}
       <ArtifactViewerFull

@@ -16,6 +16,7 @@ import type {
   TicketPendingResponse,
   TicketMessagesResponse,
   Task,
+  TaskComment,
   ArtifactChatStartResponse,
   ArtifactChatPendingResponse,
   ArchiveResult,
@@ -216,6 +217,9 @@ export const api = {
 
   getTicketTasks: (projectId: string, ticketId: string, phase?: string) =>
     request<Task[]>(`/api/tickets/${encodeURIComponent(projectId)}/${ticketId}/tasks${phase ? `?phase=${encodeURIComponent(phase)}` : ''}`),
+
+  getTaskComments: (projectId: string, ticketId: string, taskId: string) =>
+    request<TaskComment[]>(`/api/tickets/${encodeURIComponent(projectId)}/${ticketId}/tasks/${taskId}/comments`),
 
   // ============ Sessions ============
 
