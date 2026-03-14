@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import { useQuery } from '@tanstack/react-query'
-import { ChevronDown, ChevronUp, Square, CheckSquare, Loader2, XCircle } from 'lucide-react'
+import { ChevronDown, ChevronUp, Square, CheckSquare, Loader2, XCircle, MessageSquare } from 'lucide-react'
 import { api } from '@/api/client'
 import { TaskList } from './TaskList'
 import { Badge } from '@/components/ui/badge'
@@ -10,8 +10,9 @@ import {
   DialogHeader,
   DialogTitle,
 } from '@/components/ui/dialog'
+import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs'
 import { renderMarkdown } from '@/lib/markdown'
-import type { Task } from '@potato-cannon/shared'
+import type { Task, TaskComment } from '@potato-cannon/shared'
 
 interface CollapsibleTaskPanelProps {
   projectId: string
@@ -31,6 +32,22 @@ function getStatusIcon(status: string) {
       return <Square className="h-4 w-4 text-text-muted shrink-0" />
   }
 }
+
+const proseClasses = [
+  'prose prose-sm prose-invert max-w-none text-text-secondary overflow-x-auto',
+  '[&_p]:my-3 [&_ul]:my-3 [&_ol]:my-3 [&_li]:my-0.5',
+  '[&_a]:text-accent [&_a]:no-underline hover:[&_a]:underline',
+  '[&_code]:bg-bg-tertiary [&_code]:px-1.5 [&_code]:py-0.5 [&_code]:rounded [&_code]:border [&_code]:border-border [&_code]:text-xs',
+  '[&_pre]:bg-bg-tertiary [&_pre]:p-4 [&_pre]:rounded-lg [&_pre]:border [&_pre]:border-border [&_pre]:overflow-x-auto [&_pre]:my-3',
+  '[&_pre_code]:border-0 [&_pre_code]:p-0 [&_pre_code]:bg-transparent',
+  '[&_h1]:text-lg [&_h1]:font-bold [&_h1]:text-text-primary [&_h1]:mt-5 [&_h1]:mb-2',
+  '[&_h2]:text-base [&_h2]:font-semibold [&_h2]:text-text-primary [&_h2]:mt-4 [&_h2]:mb-2',
+  '[&_h3]:text-sm [&_h3]:font-medium [&_h3]:text-text-primary [&_h3]:mt-3 [&_h3]:mb-1',
+  '[&_blockquote]:border-l-2 [&_blockquote]:border-accent [&_blockquote]:pl-4 [&_blockquote]:italic [&_blockquote]:bg-bg-tertiary/50 [&_blockquote]:py-2 [&_blockquote]:pr-4 [&_blockquote]:rounded-r',
+  '[&_table]:w-full [&_th]:text-left [&_th]:p-2 [&_th]:border-b [&_th]:border-border',
+  '[&_td]:p-2 [&_td]:border-b [&_td]:border-border',
+  '[&_strong]:text-text-primary',
+].join(' ')
 
 export function CollapsibleTaskPanel({ projectId, ticketId, currentPhase }: CollapsibleTaskPanelProps) {
   const [isExpanded, setIsExpanded] = useState(true)
@@ -111,7 +128,7 @@ export function CollapsibleTaskPanel({ projectId, ticketId, currentPhase }: Coll
 
       {/* Task Detail Dialog */}
       <Dialog open={!!selectedTask} onOpenChange={() => setSelectedTask(null)}>
-        <DialogContent className="bg-bg-secondary border-border max-w-lg" aria-describedby="task-dialog-description">
+        <DialogContent className="bg-bg-secondary border-border sm:max-w-2xl max-h-[85vh] flex flex-col" aria-describedby="task-dialog-description">
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2">
               {selectedTask && getStatusIcon(selectedTask.status)}
@@ -119,22 +136,75 @@ export function CollapsibleTaskPanel({ projectId, ticketId, currentPhase }: Coll
             </DialogTitle>
           </DialogHeader>
           {selectedTask && (
-            <div id="task-dialog-description" className="space-y-3">
-              <p className="text-sm text-text-primary">{selectedTask.description}</p>
-              {selectedTask.body && (
-                <div
-                  className="text-sm text-text-secondary prose prose-sm prose-invert"
-                  dangerouslySetInnerHTML={{ __html: renderMarkdown(selectedTask.body) }}
-                />
-              )}
-              <div className="flex items-center gap-2 text-xs text-text-muted">
-                <Badge variant="outline">{selectedTask.status}</Badge>
-                <span>Attempt {selectedTask.attemptCount}</span>
-              </div>
-            </div>
+            <Tabs defaultValue="details" className="min-h-0 flex flex-col">
+              <TabsList className="shrink-0">
+                <TabsTrigger value="details">Details</TabsTrigger>
+                <TabsTrigger value="comments">
+                  Comments
+                </TabsTrigger>
+              </TabsList>
+              <TabsContent value="details" className="overflow-y-auto min-h-0">
+                <div id="task-dialog-description" className="space-y-4 pt-2">
+                  <p className="text-sm text-text-primary leading-relaxed">{selectedTask.description}</p>
+                  {selectedTask.body && (
+                    <div
+                      className={proseClasses}
+                      dangerouslySetInnerHTML={{ __html: renderMarkdown(selectedTask.body) }}
+                    />
+                  )}
+                  <div className="flex items-center gap-2 text-xs text-text-muted pt-2 border-t border-border">
+                    <Badge variant="outline">{selectedTask.status}</Badge>
+                    <span>Attempt {selectedTask.attemptCount}</span>
+                  </div>
+                </div>
+              </TabsContent>
+              <TabsContent value="comments" className="overflow-y-auto min-h-0">
+                <TaskComments projectId={projectId} ticketId={ticketId} taskId={selectedTask.id} />
+              </TabsContent>
+            </Tabs>
           )}
         </DialogContent>
       </Dialog>
     </>
+  )
+}
+
+function TaskComments({ projectId, ticketId, taskId }: { projectId: string; ticketId: string; taskId: string }) {
+  const { data: comments = [], isLoading } = useQuery<TaskComment[]>({
+    queryKey: ['task-comments', projectId, ticketId, taskId],
+    queryFn: () => api.getTaskComments(projectId, ticketId, taskId),
+  })
+
+  if (isLoading) {
+    return (
+      <div className="flex items-center justify-center py-8 text-text-muted">
+        <Loader2 className="h-4 w-4 animate-spin" />
+      </div>
+    )
+  }
+
+  if (comments.length === 0) {
+    return (
+      <div className="flex flex-col items-center justify-center py-8 text-text-muted">
+        <MessageSquare className="h-8 w-8 mb-2 opacity-40" />
+        <p className="text-sm">No comments yet</p>
+      </div>
+    )
+  }
+
+  return (
+    <div className="space-y-3 pt-2">
+      {comments.map((comment) => (
+        <div key={comment.id} className="rounded-md border border-border bg-bg-primary p-4">
+          <div
+            className={proseClasses}
+            dangerouslySetInnerHTML={{ __html: renderMarkdown(comment.text) }}
+          />
+          <p className="text-xs text-text-muted mt-3 pt-2 border-t border-border">
+            {new Date(comment.createdAt).toLocaleString()}
+          </p>
+        </div>
+      ))}
+    </div>
   )
 }
