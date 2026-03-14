@@ -34,6 +34,7 @@ const mockIsTicketPending = vi.fn().mockImplementation((_projectId: string, tick
   return ticketId === 'POT-1'
 })
 const mockOpenTicketSheet = vi.fn()
+let mockTicketSheetTicketId: string | null = null
 
 vi.mock('@/stores/appStore', () => ({
   useAppStore: (selector: (s: Record<string, unknown>) => unknown) => {
@@ -41,6 +42,7 @@ vi.mock('@/stores/appStore', () => ({
       openTicketSheet: mockOpenTicketSheet,
       isTicketProcessing: mockIsTicketProcessing,
       isTicketPending: mockIsTicketPending,
+      ticketSheetTicketId: mockTicketSheetTicketId,
     }
     return selector(state)
   },
@@ -85,5 +87,53 @@ describe('TableView - Pending Badge', () => {
     // Only one ? badge should exist (for POT-1)
     const badges = screen.getAllByText('?')
     expect(badges.length).toBe(1)
+  })
+})
+
+describe('TableView - Selected Row', () => {
+  beforeEach(() => {
+    vi.clearAllMocks()
+  })
+
+  afterEach(() => {
+    mockTicketSheetTicketId = null
+    cleanup()
+  })
+
+  it('should highlight the selected row with accent border', () => {
+    mockTicketSheetTicketId = 'POT-1'
+
+    const { container } = render(<TableView projectId="proj-1" />)
+
+    const rows = container.querySelectorAll('tbody tr')
+    const selectedRow = rows[0] as HTMLElement // POT-1 is first
+    const unselectedRow = rows[1] as HTMLElement // POT-2
+
+    expect(selectedRow.className).toContain('border-l-2')
+    expect(selectedRow.className).toContain('border-l-accent')
+    expect(unselectedRow.className).not.toContain('border-l-2')
+  })
+
+  it('should blend accent into row background style when selected', () => {
+    mockTicketSheetTicketId = 'POT-1'
+
+    const { container } = render(<TableView projectId="proj-1" />)
+
+    const rows = container.querySelectorAll('tbody tr')
+    const selectedRow = rows[0] as HTMLElement
+
+    expect(selectedRow.style.backgroundColor).toContain('color-mix')
+    expect(selectedRow.style.backgroundColor).toContain('var(--color-accent)')
+  })
+
+  it('should not highlight rows when no ticket is selected', () => {
+    mockTicketSheetTicketId = null
+
+    const { container } = render(<TableView projectId="proj-1" />)
+
+    const rows = container.querySelectorAll('tbody tr')
+    const row = rows[0] as HTMLElement
+
+    expect(row.className).not.toContain('border-l-2')
   })
 })
