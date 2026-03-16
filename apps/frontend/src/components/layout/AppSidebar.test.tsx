@@ -348,7 +348,9 @@ describe('AppSidebar', () => {
 
       renderWithProviders(<AppSidebar />)
 
-      const discordLink = screen.getByRole('link', { name: /join the discord/i })
+      const discordLinks = screen.getAllByRole('link', { name: /join the discord/i })
+      expect(discordLinks.length).toBeGreaterThan(0)
+      const discordLink = discordLinks[0]
       expect(discordLink).toBeTruthy()
       expect(discordLink.getAttribute('href')).toBe('https://discord.gg/8mJUgbyp')
       expect(discordLink.getAttribute('target')).toBe('_blank')
