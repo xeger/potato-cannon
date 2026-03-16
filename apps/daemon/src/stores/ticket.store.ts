@@ -99,6 +99,34 @@ export class TicketStore {
     this.conversationStore = createConversationStore(db);
   }
 
+  private static CUSTOM_ID_PATTERN = /^[a-zA-Z0-9_-]+$/;
+
+  private validateCustomTicketNumber(ticketNumber: string): void {
+    if (ticketNumber.length === 0 || ticketNumber.length > 20) {
+      throw Object.assign(
+        new Error("Invalid ticket number: must be 1-20 characters"),
+        { code: "VALIDATION_ERROR" }
+      );
+    }
+    if (!TicketStore.CUSTOM_ID_PATTERN.test(ticketNumber)) {
+      throw Object.assign(
+        new Error(
+          "Invalid ticket number: only letters, numbers, hyphens, and underscores allowed"
+        ),
+        { code: "VALIDATION_ERROR" }
+      );
+    }
+    const existing = this.db
+      .prepare("SELECT id FROM tickets WHERE id = ?")
+      .get(ticketNumber);
+    if (existing) {
+      throw Object.assign(
+        new Error(`Ticket number '${ticketNumber}' already exists`),
+        { code: "CONFLICT_ERROR" }
+      );
+    }
+  }
+
   // ---------------------------------------------------------------------------
   // Counter Management
   // ---------------------------------------------------------------------------
@@ -126,6 +154,18 @@ export class TicketStore {
     const prefix = getProjectPrefixFromDb(this.db, projectId);
     const number = this.getNextTicketNumber(projectId);
     return `${prefix}-${number}`;
+  }
+
+  private generateTicketIdWithRetry(projectId: string): string {
+    const maxAttempts = 5;
+    for (let attempt = 0; attempt < maxAttempts; attempt++) {
+      const id = this.generateTicketId(projectId);
+      const exists = this.db
+        .prepare("SELECT 1 FROM tickets WHERE id = ?")
+        .get(id);
+      if (!exists) return id;
+    }
+    throw new Error("Failed to generate unique ticket ID after 5 attempts");
   }
 
   // ---------------------------------------------------------------------------
@@ -183,7 +223,13 @@ export class TicketStore {
   }
 
   createTicket(projectId: string, input: CreateTicketInput): Ticket {
-    const id = this.generateTicketId(projectId);
+    let id: string;
+    if (input.ticketNumber !== undefined) {
+      this.validateCustomTicketNumber(input.ticketNumber);
+      id = input.ticketNumber;
+    } else {
+      id = this.generateTicketIdWithRetry(projectId);
+    }
     const now = new Date().toISOString();
     const initialPhase = "Ideas";
     const description = input.description || "";
