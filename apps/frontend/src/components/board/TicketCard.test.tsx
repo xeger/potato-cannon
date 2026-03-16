@@ -221,3 +221,36 @@ describe('TicketCard - Selected State', () => {
     expect(card.className).not.toContain('ring-1')
   })
 })
+
+describe('TicketCard - Processing + Selected State', () => {
+  beforeEach(() => {
+    vi.clearAllMocks()
+  })
+
+  afterEach(() => {
+    cleanup()
+  })
+
+  it('should apply both ticket-card-processing and ticket-card-selected when processing and selected', () => {
+    mockIsTicketProcessing.mockReturnValue(true)
+    mockGetTicketActivity.mockReturnValue('Building...')
+
+    // baseTicket.id is 'POT-1' which matches ticketSheetTicketId in mock store
+    render(<TicketCard ticket={baseTicket as any} projectId="proj-1" />)
+
+    const card = screen.getByText('Test Ticket').closest('[class*="rounded-lg"]') as HTMLElement
+    expect(card.className).toContain('ticket-card-processing')
+    expect(card.className).toContain('ticket-card-selected')
+  })
+
+  it('should not apply ticket-card-selected when processing but not selected', () => {
+    mockIsTicketProcessing.mockReturnValue(true)
+    mockGetTicketActivity.mockReturnValue('Building...')
+
+    render(<TicketCard ticket={{ ...baseTicket, id: 'POT-99' } as any} projectId="proj-1" />)
+
+    const card = screen.getByText('Test Ticket').closest('[class*="rounded-lg"]') as HTMLElement
+    expect(card.className).toContain('ticket-card-processing')
+    expect(card.className).not.toContain('ticket-card-selected')
+  })
+})
