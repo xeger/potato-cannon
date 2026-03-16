@@ -716,6 +716,7 @@ button, a, [role="button"] {
 
 /* Processing ticket card border animation */
 .ticket-card-processing {
+  --processing-fill: var(--color-bg-tertiary);
   position: relative;
   z-index: 0;
   background: transparent !important;
@@ -729,7 +730,7 @@ button, a, [role="button"] {
   border-radius: var(--radius-sm);
   border: 2px solid transparent;
   background:
-    linear-gradient(var(--color-bg-tertiary), var(--color-bg-tertiary)) padding-box,
+    linear-gradient(var(--processing-fill), var(--processing-fill)) padding-box,
     conic-gradient(
       from var(--border-angle),
       transparent 0deg,
@@ -746,7 +747,7 @@ button, a, [role="button"] {
   .ticket-card-processing::before {
     animation: none;
     background:
-      linear-gradient(var(--color-bg-tertiary), var(--color-bg-tertiary)) padding-box,
+      linear-gradient(var(--processing-fill), var(--processing-fill)) padding-box,
       linear-gradient(var(--color-accent), var(--color-accent)) border-box;
   }
 }
