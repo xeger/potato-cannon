@@ -81,6 +81,11 @@ export const ticketTools: ToolDefinition[] = [
           type: "string",
           description: "Optional brainstorm ID this ticket originated from",
         },
+        ticketNumber: {
+          type: "string",
+          description:
+            "Optional custom ticket number (e.g. from JIRA). Replaces auto-generated ID. Only letters, numbers, hyphens, underscores allowed (max 20 chars).",
+        },
       },
       required: ["title"],
     },
@@ -242,21 +247,23 @@ async function createTicket(
   title: string,
   description?: string,
   brainstormId?: string,
+  ticketNumber?: string,
 ): Promise<unknown> {
+  const body: Record<string, string> = { title, description: description || "" };
+  if (brainstormId) body.brainstormId = brainstormId;
+  if (ticketNumber) body.ticketNumber = ticketNumber;
+
   const response = await fetch(
     `${ctx.daemonUrl}/api/tickets/${encodeURIComponent(ctx.projectId)}`,
     {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        title,
-        description: description || "",
-        brainstormId,
-      }),
+      body: JSON.stringify(body),
     },
   );
   if (!response.ok) {
-    throw new Error(`Failed to create ticket: ${response.statusText}`);
+    const errorBody = await response.json().catch(() => ({})) as { error?: string };
+    throw new Error(errorBody.error || `Failed to create ticket: ${response.statusText}`);
   }
   return await response.json();
 }
@@ -303,6 +310,7 @@ export const ticketHandlers: Record<
       args.title as string,
       args.description as string | undefined,
       args.brainstormId as string | undefined,
+      args.ticketNumber as string | undefined,
     )) as { id: string; title: string };
     return {
       content: [
