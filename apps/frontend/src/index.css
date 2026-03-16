@@ -752,6 +752,11 @@ button, a, [role="button"] {
   }
 }
 
+/* Selected + processing: show accent background through the animation */
+.ticket-card-processing.ticket-card-selected {
+  --processing-fill: color-mix(in srgb, var(--color-accent) 15%, var(--color-bg-tertiary));
+}
+
 @media (prefers-reduced-motion: reduce) {
   .animate-pending-glow {
     animation: none;
