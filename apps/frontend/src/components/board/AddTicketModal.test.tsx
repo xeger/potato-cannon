@@ -1,5 +1,5 @@
-import { describe, it, expect, vi, beforeEach } from 'vitest'
-import { render, screen, fireEvent, waitFor } from '@testing-library/react'
+import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
+import { render, screen, fireEvent, waitFor, cleanup } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { AddTicketModal } from './AddTicketModal'
 
@@ -48,6 +48,10 @@ describe('AddTicketModal', () => {
   beforeEach(() => {
     vi.clearAllMocks()
     mockCreateTicket.mockResolvedValue({ id: 'TEST-1', title: 'Test' })
+  })
+
+  afterEach(() => {
+    cleanup()
   })
 
   it('renders the title input with autoComplete="off"', () => {

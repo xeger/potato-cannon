@@ -25,10 +25,29 @@ export function AddTicketModal() {
   const [description, setDescription] = useState('')
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [error, setError] = useState<string | null>(null)
+  const [ticketNumber, setTicketNumber] = useState('')
+  const [ticketNumberError, setTicketNumberError] = useState<string | null>(null)
+
+  const CUSTOM_ID_PATTERN = /^[a-zA-Z0-9_-]*$/
+
+  const handleTicketNumberChange = useCallback((value: string) => {
+    setTicketNumber(value)
+    if (value === '') {
+      setTicketNumberError(null)
+    } else if (!CUSTOM_ID_PATTERN.test(value)) {
+      setTicketNumberError('Only letters, numbers, hyphens, and underscores allowed')
+    } else if (value.length > 20) {
+      setTicketNumberError('Max 20 characters')
+    } else {
+      setTicketNumberError(null)
+    }
+  }, [])
 
   const resetForm = useCallback(() => {
     setTitle('')
     setDescription('')
+    setTicketNumber('')
+    setTicketNumberError(null)
     setError(null)
   }, [])
 
@@ -38,13 +57,19 @@ export function AddTicketModal() {
   }, [closeModal, resetForm])
 
   const handleSubmit = useCallback(async () => {
-    if (!currentProjectId || !title.trim()) return
+    if (!currentProjectId || !title.trim() || ticketNumberError) return
 
     setIsSubmitting(true)
     setError(null)
 
     try {
-      await api.createTicket(currentProjectId, title.trim(), description.trim() || undefined)
+      const trimmedTicketNumber = ticketNumber.trim()
+      await api.createTicket(
+        currentProjectId,
+        title.trim(),
+        description.trim() || undefined,
+        trimmedTicketNumber || undefined,
+      )
       queryClient.invalidateQueries({ queryKey: ['tickets', currentProjectId] })
       handleClose()
     } catch (err) {
@@ -52,7 +77,7 @@ export function AddTicketModal() {
     } finally {
       setIsSubmitting(false)
     }
-  }, [currentProjectId, title, description, queryClient, handleClose])
+  }, [currentProjectId, title, description, ticketNumber, ticketNumberError, queryClient, handleClose])
 
   const handleKeyDown = (e: KeyboardEvent<HTMLInputElement>) => {
     if (e.key === 'Enter' && title.trim() && !isSubmitting) {
@@ -90,6 +115,25 @@ export function AddTicketModal() {
           </div>
 
           <div className="space-y-2">
+            <label htmlFor="ticket-number" className="text-sm text-text-secondary">
+              Ticket Number <span className="text-text-muted">(optional)</span>
+            </label>
+            <Input
+              id="ticket-number"
+              value={ticketNumber}
+              onChange={(e) => handleTicketNumberChange(e.target.value)}
+              onKeyDown={handleKeyDown}
+              placeholder="e.g. JIRA-123 (optional)"
+              disabled={isSubmitting}
+              autoComplete="off"
+              className="bg-bg-tertiary border-border"
+            />
+            {ticketNumberError && (
+              <p className="text-sm text-accent-red">{ticketNumberError}</p>
+            )}
+          </div>
+
+          <div className="space-y-2">
             <label htmlFor="ticket-description" className="text-sm text-text-secondary">
               Description <span className="text-text-muted">(optional)</span>
             </label>
@@ -112,7 +156,7 @@ export function AddTicketModal() {
           <Button variant="outline" onClick={handleClose} disabled={isSubmitting}>
             Cancel
           </Button>
-          <Button onClick={handleSubmit} disabled={!title.trim() || isSubmitting}>
+          <Button onClick={handleSubmit} disabled={!title.trim() || isSubmitting || !!ticketNumberError}>
             {isSubmitting ? (
               <>
                 <Loader2 className="h-4 w-4 mr-1 animate-spin" />
