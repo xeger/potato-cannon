@@ -105,6 +105,7 @@ export function TicketCard({ ticket, projectId, swimlaneColor }: TicketCardProps
         className={cn(
           'relative group',
           isProcessing && 'ticket-card-processing',
+          isProcessing && isSelected && 'ticket-card-selected',
           isArchiving && 'opacity-50 pointer-events-none cursor-not-allowed'
         )}
       >
