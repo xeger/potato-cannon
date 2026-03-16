@@ -743,6 +743,11 @@ button, a, [role="button"] {
   animation: border-travel 4s linear infinite;
 }
 
+/* Selected + processing: show accent background through the animation */
+.ticket-card-processing.ticket-card-selected {
+  --processing-fill: color-mix(in srgb, var(--color-accent) 15%, var(--color-bg-tertiary));
+}
+
 @media (prefers-reduced-motion: reduce) {
   .ticket-card-processing::before {
     animation: none;
@@ -750,11 +755,6 @@ button, a, [role="button"] {
       linear-gradient(var(--processing-fill), var(--processing-fill)) padding-box,
       linear-gradient(var(--color-accent), var(--color-accent)) border-box;
   }
-}
-
-/* Selected + processing: show accent background through the animation */
-.ticket-card-processing.ticket-card-selected {
-  --processing-fill: color-mix(in srgb, var(--color-accent) 15%, var(--color-bg-tertiary));
 }
 
 @media (prefers-reduced-motion: reduce) {
