@@ -297,6 +297,65 @@ describe('AppSidebar', () => {
       const buttons = screen.getAllByRole('button')
       expect(buttons.length).toBeGreaterThan(0)
     })
+
+    it('should render Discord link in sidebar footer', () => {
+      vi.spyOn(queries, 'useProjects').mockReturnValue({
+        data: [],
+        isLoading: false,
+        error: null,
+        status: 'success',
+        isError: false,
+        isFetched: true,
+        isFetchedAfterMount: true,
+        isRefetching: false,
+        isPlaceholderData: false,
+        dataUpdatedAt: Date.now(),
+        errorUpdatedAt: 0,
+        failureCount: 0,
+        failureReason: null,
+        isPending: false,
+        isFetching: false,
+      } as any)
+
+      vi.spyOn(queries, 'useFolders').mockReturnValue({
+        data: [],
+        isLoading: false,
+        error: null,
+        status: 'success',
+        isError: false,
+        isFetched: true,
+        isFetchedAfterMount: true,
+        isRefetching: false,
+        isPlaceholderData: false,
+        dataUpdatedAt: Date.now(),
+        errorUpdatedAt: 0,
+        failureCount: 0,
+        failureReason: null,
+        isPending: false,
+        isFetching: false,
+      } as any)
+
+      vi.spyOn(appStore, 'useAppStore').mockImplementation((selector: any) => {
+        const state = {
+          processingTickets: new Map(),
+          collapsedFolders: [],
+          expandFolder: vi.fn(),
+          openAddProjectModal: vi.fn(),
+          openCreateFolderModal: vi.fn(),
+        }
+        return selector(state)
+      })
+
+      renderWithProviders(<AppSidebar />)
+
+      const discordLinks = screen.getAllByRole('link', { name: /join the discord/i })
+      expect(discordLinks.length).toBeGreaterThan(0)
+      const discordLink = discordLinks[0]
+      expect(discordLink).toBeTruthy()
+      expect(discordLink.getAttribute('href')).toBe('https://discord.gg/8mJUgbyp')
+      expect(discordLink.getAttribute('target')).toBe('_blank')
+      expect(discordLink.getAttribute('rel')).toBe('noopener noreferrer')
+    })
   })
 
   describe('Folder Collapse/Expand', () => {
