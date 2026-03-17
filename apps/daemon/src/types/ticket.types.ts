@@ -21,6 +21,7 @@ export type TicketPhase = string;
 export interface CreateTicketInput {
   title: string;
   description?: string;
+  ticketNumber?: string;
 }
 
 export interface UpdateTicketInput {

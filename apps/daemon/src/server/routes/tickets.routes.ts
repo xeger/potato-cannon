@@ -69,10 +69,11 @@ export function registerTicketRoutes(
   app.post("/api/tickets/:project", async (req: Request, res: Response) => {
     try {
       const projectId = decodeURIComponent(req.params.project);
-      const { title, description, brainstormId } = req.body as {
+      const { title, description, brainstormId, ticketNumber } = req.body as {
         title?: string;
         description?: string;
         brainstormId?: string;
+        ticketNumber?: string;
       };
 
       if (!title) {
@@ -80,7 +81,7 @@ export function registerTicketRoutes(
         return;
       }
 
-      const ticket = await createTicket(projectId, { title, description });
+      const ticket = await createTicket(projectId, { title, description, ticketNumber });
       eventBus.emit("ticket:created", { projectId, ticket });
 
       // Link brainstorm to created ticket
@@ -99,7 +100,14 @@ export function registerTicketRoutes(
 
       res.json(ticket);
     } catch (error) {
-      res.status(500).json({ error: (error as Error).message });
+      const err = error as Error & { code?: string };
+      if (err.code === "VALIDATION_ERROR") {
+        res.status(400).json({ error: err.message });
+      } else if (err.code === "CONFLICT_ERROR") {
+        res.status(409).json({ error: err.message });
+      } else {
+        res.status(500).json({ error: err.message });
+      }
     }
   });
 

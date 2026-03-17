@@ -417,4 +417,149 @@ describe("TicketStore", () => {
       assert.strictEqual(current, null);
     });
   });
+
+  describe("createTicket with custom ticketNumber", () => {
+    it("should use custom ticketNumber as the ticket ID", () => {
+      const ticket = ticketStore.createTicket(projectId, {
+        title: "JIRA Import",
+        ticketNumber: "JIRA-123",
+      });
+
+      assert.strictEqual(ticket.id, "JIRA-123");
+      assert.strictEqual(ticket.title, "JIRA Import");
+      assert.strictEqual(ticket.phase, "Ideas");
+      assert.strictEqual(ticket.project, projectId);
+    });
+
+    it("should not increment auto-counter when custom ticketNumber is used", () => {
+      // Create a ticket with custom number
+      ticketStore.createTicket(projectId, {
+        title: "Custom",
+        ticketNumber: "EXT-1",
+      });
+
+      // Create a ticket with auto-generated number
+      const autoTicket = ticketStore.createTicket(projectId, {
+        title: "Auto",
+      });
+
+      // Auto ticket should be number 1, not 2 (custom didn't consume a number)
+      const num = parseInt(autoTicket.id.split("-")[1], 10);
+      assert.strictEqual(num, 1);
+    });
+
+    it("should reject ticketNumber with spaces", () => {
+      assert.throws(() => {
+        ticketStore.createTicket(projectId, {
+          title: "Bad Spaces",
+          ticketNumber: "JIRA 123",
+        });
+      }, /Invalid ticket number/);
+    });
+
+    it("should reject ticketNumber with path traversal characters", () => {
+      assert.throws(() => {
+        ticketStore.createTicket(projectId, {
+          title: "Path Traversal",
+          ticketNumber: "../etc/passwd",
+        });
+      }, /Invalid ticket number/);
+    });
+
+    it("should reject ticketNumber with slashes", () => {
+      assert.throws(() => {
+        ticketStore.createTicket(projectId, {
+          title: "Slashes",
+          ticketNumber: "JIRA/123",
+        });
+      }, /Invalid ticket number/);
+    });
+
+    it("should reject ticketNumber exceeding 20 characters", () => {
+      assert.throws(() => {
+        ticketStore.createTicket(projectId, {
+          title: "Too Long",
+          ticketNumber: "ABCDEFGHIJKLMNOPQRSTU",
+        });
+      }, /Invalid ticket number/);
+    });
+
+    it("should reject empty string ticketNumber", () => {
+      assert.throws(() => {
+        ticketStore.createTicket(projectId, {
+          title: "Empty",
+          ticketNumber: "",
+        });
+      }, /Invalid ticket number/);
+    });
+
+    it("should accept valid formats: letters, numbers, hyphens, underscores", () => {
+      const t1 = ticketStore.createTicket(projectId, {
+        title: "Hyphen",
+        ticketNumber: "JIRA-123",
+      });
+      assert.strictEqual(t1.id, "JIRA-123");
+
+      const t2 = ticketStore.createTicket(projectId, {
+        title: "Underscore",
+        ticketNumber: "ABC_456",
+      });
+      assert.strictEqual(t2.id, "ABC_456");
+
+      const t3 = ticketStore.createTicket(projectId, {
+        title: "Mixed",
+        ticketNumber: "proj-99",
+      });
+      assert.strictEqual(t3.id, "proj-99");
+    });
+
+    it("should reject duplicate custom ticketNumber", () => {
+      ticketStore.createTicket(projectId, {
+        title: "First",
+        ticketNumber: "DUP-1",
+      });
+
+      assert.throws(() => {
+        ticketStore.createTicket(projectId, {
+          title: "Second",
+          ticketNumber: "DUP-1",
+        });
+      }, /already exists/);
+    });
+
+    it("should still auto-generate when ticketNumber is undefined", () => {
+      const ticket = ticketStore.createTicket(projectId, {
+        title: "Normal Ticket",
+      });
+
+      assert.match(ticket.id, /^[A-Z]{1,3}-\d+$/);
+    });
+
+    it("should retry auto-generation when generated ID collides with a custom ticket", () => {
+      // Pre-create a ticket with a custom number that looks like an auto-generated ID
+      // The project prefix for "Test Project" is "TES"
+      ticketStore.createTicket(projectId, {
+        title: "Blocker",
+        ticketNumber: "TES-1",
+      });
+
+      // Now auto-generate — TES-1 is taken, so it should retry and get TES-2
+      const autoTicket = ticketStore.createTicket(projectId, {
+        title: "Auto After Collision",
+      });
+
+      assert.strictEqual(autoTicket.id, "TES-2");
+    });
+
+    it("should create initial history entry for custom-numbered ticket", () => {
+      const ticket = ticketStore.createTicket(projectId, {
+        title: "History Test",
+        ticketNumber: "HIST-1",
+      });
+
+      assert.strictEqual(ticket.history.length, 1);
+      assert.strictEqual(ticket.history[0].phase, "Ideas");
+      assert.ok(ticket.history[0].at);
+    });
+  });
 });
