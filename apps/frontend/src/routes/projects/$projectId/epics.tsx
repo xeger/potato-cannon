@@ -3,7 +3,7 @@ import { useProjects, useEpics } from '@/hooks/queries'
 import { useAppStore } from '@/stores/appStore'
 import { EpicCard } from '@/components/epic/EpicCard'
 import { Button } from '@/components/ui/button'
-import { Plus } from 'lucide-react'
+import { Plus, MessageSquarePlus } from 'lucide-react'
 
 export const Route = createFileRoute('/projects/$projectId/epics')({
   component: EpicsPage,
@@ -22,6 +22,7 @@ function EpicsPage() {
 function EpicList({ projectId }: { projectId: string }) {
   const { data: epics, isLoading } = useEpics(projectId)
   const openCreateEpicModal = useAppStore((s) => s.openCreateEpicModal)
+  const openNewBrainstormSheet = useAppStore((s) => s.openNewBrainstormSheet)
   const openEpicSheet = useAppStore((s) => s.openEpicSheet)
   const epicSheetEpicId = useAppStore((s) => s.epicSheetEpicId)
 
@@ -37,13 +38,23 @@ function EpicList({ projectId }: { projectId: string }) {
     <div className="p-6 max-w-4xl mx-auto">
       <div className="flex items-center justify-between mb-6">
         <h1 className="text-lg font-semibold text-text-primary">Epics</h1>
-        <Button
-          size="sm"
-          onClick={() => openCreateEpicModal(projectId)}
-        >
-          <Plus className="h-4 w-4 mr-1" />
-          Create Epic
-        </Button>
+        <div className="flex items-center gap-2">
+          <Button
+            size="sm"
+            variant="outline"
+            onClick={() => openNewBrainstormSheet(projectId)}
+          >
+            <MessageSquarePlus className="h-4 w-4 mr-1" />
+            Brainstorm
+          </Button>
+          <Button
+            size="sm"
+            onClick={() => openCreateEpicModal(projectId)}
+          >
+            <Plus className="h-4 w-4 mr-1" />
+            Create Epic
+          </Button>
+        </div>
       </div>
 
       {!epics || epics.length === 0 ? (
