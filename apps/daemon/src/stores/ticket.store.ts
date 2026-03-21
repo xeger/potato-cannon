@@ -54,6 +54,7 @@ interface TicketRow {
   conversation_id: string | null;
   worker_state: string | null;
   pending_phase: string | null;
+  epic_id: string | null;
 }
 
 interface HistoryRow {
@@ -230,10 +231,10 @@ export class TicketStore {
     // Insert ticket with conversation_id and description
     this.db
       .prepare(
-        `INSERT INTO tickets (id, project_id, title, description, phase, created_at, updated_at, archived, conversation_id)
-         VALUES (?, ?, ?, ?, ?, ?, ?, 0, ?)`
+        `INSERT INTO tickets (id, project_id, title, description, phase, created_at, updated_at, archived, conversation_id, epic_id)
+         VALUES (?, ?, ?, ?, ?, ?, ?, 0, ?, ?)`
       )
-      .run(id, projectId, input.title, description, initialPhase, now, now, conversation.id);
+      .run(id, projectId, input.title, description, initialPhase, now, now, conversation.id, input.epicId || null);
 
     // Insert initial history entry
     const historyId = randomUUID();
@@ -460,6 +461,7 @@ export class TicketStore {
       archivedAt: row.archived_at || undefined,
       conversationId: row.conversation_id || undefined,
       pendingPhase: row.pending_phase || undefined,
+      epicId: row.epic_id || undefined,
     };
   }
 
