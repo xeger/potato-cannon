@@ -23,6 +23,7 @@ import os from 'os';
 const PROJECT_ID = process.env.POTATO_PROJECT_ID || '';
 const TICKET_ID = process.env.POTATO_TICKET_ID || '';
 const BRAINSTORM_ID = process.env.POTATO_BRAINSTORM_ID || '';
+const EPIC_ID = process.env.POTATO_EPIC_ID || '';
 
 async function getDaemonUrl(): Promise<string> {
   const daemonFile = path.join(os.homedir(), '.potato-cannon', 'daemon.json');
@@ -60,6 +61,7 @@ async function callTool(
         projectId: PROJECT_ID,
         ticketId: TICKET_ID || undefined,
         brainstormId: BRAINSTORM_ID || undefined,
+        epicId: EPIC_ID || undefined,
       },
     }),
   });
@@ -112,8 +114,8 @@ async function main() {
     console.error('Error: POTATO_PROJECT_ID environment variable is required');
     process.exit(1);
   }
-  if (!TICKET_ID && !BRAINSTORM_ID) {
-    console.error('Error: Either POTATO_TICKET_ID or POTATO_BRAINSTORM_ID is required');
+  if (!TICKET_ID && !BRAINSTORM_ID && !EPIC_ID) {
+    console.error('Error: Either POTATO_TICKET_ID, POTATO_BRAINSTORM_ID, or POTATO_EPIC_ID is required');
     process.exit(1);
   }
 

@@ -7,6 +7,7 @@ export interface ChatContext {
   projectId: string;
   ticketId?: string;
   brainstormId?: string;
+  epicId?: string;
 }
 
 /**

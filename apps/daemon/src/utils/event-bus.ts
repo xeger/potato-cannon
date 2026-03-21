@@ -22,7 +22,8 @@ type EventName =
   | "folder:updated"
   | "epic:created"
   | "epic:updated"
-  | "epic:deleted";
+  | "epic:deleted"
+  | "epic:message";
 
 class EventBus extends EventEmitter {
   private clients: Set<Response> = new Set();
@@ -62,6 +63,7 @@ const forwardEvents: EventName[] = [
   "epic:created",
   "epic:updated",
   "epic:deleted",
+  "epic:message",
 ];
 
 for (const event of forwardEvents) {
