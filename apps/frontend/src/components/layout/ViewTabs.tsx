@@ -25,24 +25,6 @@ export function ViewTabs() {
       <Tooltip>
         <TooltipTrigger asChild>
           <Link
-            to="/projects/$projectId/board"
-            params={{ projectId }}
-            className={cn(
-              'flex items-center gap-1.5 px-3 py-1.5 rounded-md text-sm transition-colors',
-              isBoardActive
-                ? 'bg-bg-tertiary text-text-primary'
-                : 'text-text-secondary hover:bg-bg-hover hover:text-text-primary'
-            )}
-          >
-            <LayoutDashboard className="h-4 w-4" />
-            <span>Board</span>
-          </Link>
-        </TooltipTrigger>
-        <TooltipContent>An AI Assisted Kanban board</TooltipContent>
-      </Tooltip>
-      <Tooltip>
-        <TooltipTrigger asChild>
-          <Link
             to="/projects/$projectId/epics"
             params={{ projectId }}
             className={cn(
@@ -57,6 +39,24 @@ export function ViewTabs() {
           </Link>
         </TooltipTrigger>
         <TooltipContent>Group related tickets into epics</TooltipContent>
+      </Tooltip>
+      <Tooltip>
+        <TooltipTrigger asChild>
+          <Link
+            to="/projects/$projectId/board"
+            params={{ projectId }}
+            className={cn(
+              'flex items-center gap-1.5 px-3 py-1.5 rounded-md text-sm transition-colors',
+              isBoardActive
+                ? 'bg-bg-tertiary text-text-primary'
+                : 'text-text-secondary hover:bg-bg-hover hover:text-text-primary'
+            )}
+          >
+            <LayoutDashboard className="h-4 w-4" />
+            <span>Board</span>
+          </Link>
+        </TooltipTrigger>
+        <TooltipContent>An AI Assisted Kanban board</TooltipContent>
       </Tooltip>
       <div className="flex-1" />
       <Tooltip>
