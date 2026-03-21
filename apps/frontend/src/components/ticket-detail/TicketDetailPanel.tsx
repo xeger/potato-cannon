@@ -1,5 +1,5 @@
 import { useState, useMemo, useCallback, useEffect } from 'react'
-import { useLocation } from '@tanstack/react-router'
+import { useLocation, useNavigate } from '@tanstack/react-router'
 import { Loader2, X } from 'lucide-react'
 import { useAppStore } from '@/stores/appStore'
 import {
@@ -7,7 +7,8 @@ import {
   useProjectPhases,
   useUpdateTicket,
   useProjects,
-  useTemplate
+  useTemplate,
+  useEpics,
 } from '@/hooks/queries'
 import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs'
 import {
@@ -53,6 +54,9 @@ export function TicketDetailPanel() {
   const ticketSheetProjectId = useAppStore((s) => s.ticketSheetProjectId)
   const closeTicketSheet = useAppStore((s) => s.closeTicketSheet)
   const currentProjectId = useAppStore((s) => s.currentProjectId)
+  const openEpicSheet = useAppStore((s) => s.openEpicSheet)
+  const navigate = useNavigate()
+  const { data: epics } = useEpics(currentProjectId)
 
   // Only show panel on board view and when viewing the same project where the ticket was opened
   const location = useLocation()
@@ -187,6 +191,26 @@ export function TicketDetailPanel() {
                     <Badge variant="outline" className="text-text-muted font-mono text-xs">
                       {ticket.id}
                     </Badge>
+                    {(() => {
+                      const ticketEpic = epics?.find((e) => e.id === ticket.epicId)
+                      return ticketEpic ? (
+                        <button
+                          type="button"
+                          onClick={() => {
+                            if (ticketSheetProjectId) {
+                              const projectSlug = location.pathname.match(/^\/projects\/([^/]+)/)?.[1]
+                              if (projectSlug) {
+                                navigate({ to: '/projects/$projectId/epics', params: { projectId: projectSlug } })
+                                openEpicSheet(ticketSheetProjectId, ticketEpic.id)
+                              }
+                            }
+                          }}
+                          className="text-xs px-1.5 py-0.5 rounded bg-blue-500/15 text-blue-400 hover:bg-blue-500/25 transition-colors"
+                        >
+                          {ticketEpic.identifier}
+                        </button>
+                      ) : null
+                    })()}
                   </div>
                   <h2 className="text-text-primary text-lg font-semibold">
                     {ticket.title}
