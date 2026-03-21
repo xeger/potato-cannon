@@ -96,6 +96,19 @@ interface AppState {
   // Archived tickets visibility
   showArchivedTickets: boolean
   setShowArchivedTickets: (show: boolean) => void
+
+  // Epic panel
+  epicSheetOpen: boolean
+  epicSheetEpicId: string | null
+  epicSheetProjectId: string | null
+  openEpicSheet: (projectId: string, epicId: string) => void
+  closeEpicSheet: () => void
+
+  // Create epic modal
+  createEpicModalOpen: boolean
+  createEpicModalProjectId: string | null
+  openCreateEpicModal: (projectId: string) => void
+  closeCreateEpicModal: () => void
 }
 
 export const useAppStore = create<AppState>()(
@@ -216,12 +229,15 @@ export const useAppStore = create<AppState>()(
         ticketSheetOpen: true,
         ticketSheetProjectId: projectId,
         ticketSheetTicketId: ticketId,
-        // Mutual exclusion: close brainstorm sidebar
+        // Mutual exclusion: close brainstorm and epic sidebars
         brainstormSheetOpen: false,
         brainstormSheetBrainstormId: null,
         brainstormSheetProjectId: null,
         brainstormSheetBrainstormName: null,
-        brainstormSheetIsCreating: false
+        brainstormSheetIsCreating: false,
+        epicSheetOpen: false,
+        epicSheetEpicId: null,
+        epicSheetProjectId: null,
       }),
       closeTicketSheet: () => set({
         ticketSheetOpen: false,
@@ -241,10 +257,13 @@ export const useAppStore = create<AppState>()(
         brainstormSheetBrainstormId: brainstormId,
         brainstormSheetBrainstormName: brainstormName,
         brainstormSheetIsCreating: false,
-        // Mutual exclusion: close ticket sidebar
+        // Mutual exclusion: close ticket and epic sidebars
         ticketSheetOpen: false,
         ticketSheetTicketId: null,
-        ticketSheetProjectId: null
+        ticketSheetProjectId: null,
+        epicSheetOpen: false,
+        epicSheetEpicId: null,
+        epicSheetProjectId: null,
       }),
       openNewBrainstormSheet: (projectId) => set({
         brainstormSheetOpen: true,
@@ -252,10 +271,13 @@ export const useAppStore = create<AppState>()(
         brainstormSheetBrainstormId: null,
         brainstormSheetBrainstormName: null,
         brainstormSheetIsCreating: true,
-        // Mutual exclusion: close ticket sidebar
+        // Mutual exclusion: close ticket and epic sidebars
         ticketSheetOpen: false,
         ticketSheetTicketId: null,
-        ticketSheetProjectId: null
+        ticketSheetProjectId: null,
+        epicSheetOpen: false,
+        epicSheetEpicId: null,
+        epicSheetProjectId: null,
       }),
       closeBrainstormSheet: () => set({
         brainstormSheetOpen: false,
@@ -295,7 +317,47 @@ export const useAppStore = create<AppState>()(
 
       // Archived tickets visibility
       showArchivedTickets: false,
-      setShowArchivedTickets: (show) => set({ showArchivedTickets: show })
+      setShowArchivedTickets: (show) => set({ showArchivedTickets: show }),
+
+      // Epic panel
+      epicSheetOpen: false,
+      epicSheetEpicId: null,
+      epicSheetProjectId: null,
+      openEpicSheet: (projectId, epicId) =>
+        set({
+          epicSheetOpen: true,
+          epicSheetEpicId: epicId,
+          epicSheetProjectId: projectId,
+          // Mutual exclusion: close other panels
+          ticketSheetOpen: false,
+          ticketSheetTicketId: null,
+          ticketSheetProjectId: null,
+          brainstormSheetOpen: false,
+          brainstormSheetBrainstormId: null,
+          brainstormSheetProjectId: null,
+          brainstormSheetBrainstormName: null,
+          brainstormSheetIsCreating: false,
+        }),
+      closeEpicSheet: () =>
+        set({
+          epicSheetOpen: false,
+          epicSheetEpicId: null,
+          epicSheetProjectId: null,
+        }),
+
+      // Create epic modal
+      createEpicModalOpen: false,
+      createEpicModalProjectId: null,
+      openCreateEpicModal: (projectId) =>
+        set({
+          createEpicModalOpen: true,
+          createEpicModalProjectId: projectId,
+        }),
+      closeCreateEpicModal: () =>
+        set({
+          createEpicModalOpen: false,
+          createEpicModalProjectId: null,
+        }),
     }),
     {
       name: 'potato-cannon-app',
