@@ -8,6 +8,7 @@ export interface Epic {
   title: string;
   description: string | null;
   status: EpicStatus;
+  conversationId?: string;
   createdAt: string;
   updatedAt: string;
 }

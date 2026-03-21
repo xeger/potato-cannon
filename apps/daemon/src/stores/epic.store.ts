@@ -2,6 +2,7 @@ import type Database from "better-sqlite3";
 import { randomUUID } from "crypto";
 import { getDatabase } from "./db.js";
 import { getProjectPrefixFromDb } from "./utils.js";
+import { createConversationStore } from "./conversation.store.js";
 import type {
   Epic,
   EpicStatus,
@@ -20,6 +21,7 @@ interface EpicRow {
   epic_number: number;
   title: string;
   description: string | null;
+  conversation_id: string | null;
   created_at: string;
   updated_at: string;
 }
@@ -187,6 +189,26 @@ export class EpicStore {
   // Private Helpers
   // ---------------------------------------------------------------------------
 
+  ensureConversation(epicId: string, projectId: string): string {
+    const row = this.db
+      .prepare("SELECT conversation_id FROM epics WHERE id = ?")
+      .get(epicId) as { conversation_id: string | null } | undefined;
+
+    if (row?.conversation_id) {
+      return row.conversation_id;
+    }
+
+    const convStore = createConversationStore(this.db);
+    const conversation = convStore.createConversation(projectId);
+    const now = new Date().toISOString();
+
+    this.db
+      .prepare("UPDATE epics SET conversation_id = ?, updated_at = ? WHERE id = ?")
+      .run(conversation.id, now, epicId);
+
+    return conversation.id;
+  }
+
   private getNextEpicNumber(projectId: string): number {
     const row = this.db
       .prepare("SELECT next_number FROM epic_counters WHERE project_id = ?")
@@ -261,6 +283,7 @@ export class EpicStore {
       title: row.title,
       description: row.description,
       status: row.status,
+      conversationId: row.conversation_id || undefined,
       createdAt: row.created_at,
       updatedAt: row.updated_at,
       ticketCount: row.ticket_count,
@@ -335,4 +358,9 @@ export function assignTicketToEpic(ticketId: string, epicId: string): void {
 export function unassignTicketFromEpic(ticketId: string): void {
   const store = new EpicStore(getDatabase());
   store.unassignTicket(ticketId);
+}
+
+export function ensureEpicConversation(epicId: string, projectId: string): string {
+  const store = new EpicStore(getDatabase());
+  return store.ensureConversation(epicId, projectId);
 }
