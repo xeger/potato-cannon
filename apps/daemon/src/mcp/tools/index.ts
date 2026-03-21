@@ -4,13 +4,14 @@ import { taskTools, taskHandlers } from "./task.tools.js";
 import { ralphTools, ralphHandlers } from "./ralph.tools.js";
 import { artifactTools, artifactHandlers } from "./artifact.tools.js";
 import { answerTools, answerHandlers } from "./answer.tools.js";
+import { epicTools, epicHandlers } from "./epic.tools.js";
 import type {
   ToolDefinition,
   McpContext,
   McpToolResult,
 } from "../../types/mcp.types.js";
 
-export const allTools: ToolDefinition[] = [...ticketTools, ...chatTools, ...taskTools, ...ralphTools, ...artifactTools, ...answerTools];
+export const allTools: ToolDefinition[] = [...ticketTools, ...chatTools, ...taskTools, ...ralphTools, ...artifactTools, ...answerTools, ...epicTools];
 
 export const allHandlers: Record<
   string,
@@ -22,7 +23,8 @@ export const allHandlers: Record<
   ...ralphHandlers,
   ...artifactHandlers,
   ...answerHandlers,
+  ...epicHandlers,
 };
 
-export { ticketTools, chatTools, taskTools, ralphTools, artifactTools, answerTools };
-export { ticketHandlers, chatHandlers, taskHandlers, ralphHandlers, artifactHandlers, answerHandlers };
+export { ticketTools, chatTools, taskTools, ralphTools, artifactTools, answerTools, epicTools };
+export { ticketHandlers, chatHandlers, taskHandlers, ralphHandlers, artifactHandlers, answerHandlers, epicHandlers };
