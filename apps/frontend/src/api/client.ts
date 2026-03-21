@@ -481,4 +481,20 @@ export const api = {
       method: 'PUT',
       body: JSON.stringify({ epicId }),
     }),
+
+  // ============ Epic Chat ============
+
+  sendEpicChatMessage: (projectId: string, epicId: string, message: string) =>
+    request<{ ok: true; sessionId: string }>(
+      `/api/projects/${encodeURIComponent(projectId)}/epics/${encodeURIComponent(epicId)}/chat`,
+      {
+        method: 'POST',
+        body: JSON.stringify({ message }),
+      }
+    ),
+
+  getEpicChatMessages: (projectId: string, epicId: string) =>
+    request<{ messages: Array<{ id: string; type: string; text: string; timestamp: string; conversationId: string; options?: string[] }> }>(
+      `/api/projects/${encodeURIComponent(projectId)}/epics/${encodeURIComponent(epicId)}/chat/messages`
+    ),
 }
