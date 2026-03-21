@@ -1,6 +1,6 @@
 import type Database from "better-sqlite3";
 
-const CURRENT_SCHEMA_VERSION = 10;
+const CURRENT_SCHEMA_VERSION = 11;
 
 /**
  * Run database migrations.
@@ -47,6 +47,10 @@ export function runMigrations(db: Database.Database): void {
 
   if (version < 10) {
     migrateV10(db);
+  }
+
+  if (version < 11) {
+    migrateV11(db);
   }
 
   db.pragma(`user_version = ${CURRENT_SCHEMA_VERSION}`);
@@ -476,4 +480,11 @@ function migrateV10(db: Database.Database): void {
       PRIMARY KEY (project_id, context_id)
     );
   `);
+}
+
+/**
+ * V11: Add reason column to ticket_history (for block reasons)
+ */
+function migrateV11(db: Database.Database): void {
+  db.exec(`ALTER TABLE ticket_history ADD COLUMN reason TEXT`);
 }
