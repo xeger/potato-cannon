@@ -216,7 +216,6 @@ export function registerEpicRoutes(
       });
 
       // Spawn epic chat session
-      // @ts-expect-error spawnForEpicChat will be added in next task
       const sessionId = await sessionService.spawnForEpicChat(
         projectId,
         epicId,

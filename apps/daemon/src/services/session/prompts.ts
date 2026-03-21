@@ -236,3 +236,48 @@ Acknowledge their idea and ask your first clarifying question. Do NOT ask "what 
 
 ${instructions}`;
 }
+
+/**
+ * Build a prompt for an epic chat session.
+ */
+export function buildEpicChatPrompt(
+  epic: { id: string; identifier: string; title: string; description: string | null; ticketCount: number; doneCount: number },
+  options?: { pendingContext?: { question: string; response: string }; initialMessage?: string }
+): string {
+  const lines: string[] = [
+    `## Epic Context`,
+    ``,
+    `**Epic:** ${epic.identifier}`,
+    `**Title:** ${epic.title}`,
+    `**Progress:** ${epic.doneCount}/${epic.ticketCount} tickets done`,
+    `**Epic ID (for create_ticket epicId parameter):** ${epic.id}`,
+    ``,
+  ];
+
+  if (epic.description) {
+    lines.push(`## Epic Description`, ``, epic.description, ``);
+  }
+
+  if (options?.pendingContext) {
+    lines.push(
+      `## Previous Exchange`,
+      ``,
+      `You asked: ${options.pendingContext.question}`,
+      `User responded: ${options.pendingContext.response}`,
+      ``,
+    );
+  }
+
+  if (options?.initialMessage) {
+    lines.push(
+      `## User Message`,
+      ``,
+      options.initialMessage,
+      ``,
+    );
+  }
+
+  lines.push(`Use chat_ask to ask the user questions. The session will suspend — exit cleanly now. You will be resumed with the answer.`);
+
+  return lines.join("\n");
+}

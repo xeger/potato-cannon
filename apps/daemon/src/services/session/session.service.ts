@@ -20,6 +20,7 @@ import {
 } from "../../stores/ticket.store.js";
 import { getProjectById } from "../../stores/project.store.js";
 import { getBrainstorm } from "../../stores/brainstorm.store.js";
+import { getEpicById } from "../../stores/epic.store.js";
 import {
   createStoredSession,
   endStoredSession,
@@ -49,7 +50,7 @@ import type { TaskContext } from "../../types/orchestration.types.js";
 import type { ActiveSession } from "./types.js";
 import { ensureWorktree } from "./worktree.js";
 import { getPhaseConfig, phaseRequiresWorktree, getNextEnabledPhase } from "./phase-config.js";
-import { buildBrainstormPrompt, buildAgentPrompt } from "./prompts.js";
+import { buildBrainstormPrompt, buildEpicChatPrompt, buildAgentPrompt } from "./prompts.js";
 import { tryLoadAgentDefinition } from "./agent-loader.js";
 import { resolveModel } from "./model-resolver.js";
 import { logToDaemon, savePrompt } from "./ticket-logger.js";
@@ -813,6 +814,235 @@ export class SessionService {
       logStream.end();
 
       // End session record in database
+      endStoredSession(sessionId, exitCode);
+
+      const session = this.sessions.get(sessionId);
+      if (session?.exitResolver) {
+        session.exitResolver();
+      }
+
+      this.sessions.delete(sessionId);
+      this.eventEmitter.emit("session:ended", { sessionId, ...endMeta });
+    });
+
+    return sessionId;
+  }
+
+  /**
+   * Spawn a session for an epic chat. Mirrors spawnForBrainstorm with epicId context.
+   */
+  async spawnForEpicChat(
+    projectId: string,
+    epicId: string,
+    projectPath: string,
+    initialMessage?: string,
+  ): Promise<string> {
+    console.log(`[spawnForEpicChat] Starting for epic ${epicId}`);
+
+    const epic = getEpicById(epicId);
+    if (!epic) {
+      throw new Error(`Epic ${epicId} not found`);
+    }
+
+    // Use metadata to track epicId since session store has no epic_id column
+    const existingClaudeSessionId = (() => {
+      // Query via metadata is not directly supported; skip resume for now
+      // Epic sessions start fresh each time (no --resume)
+      return null;
+    })();
+
+    // Create session record in database
+    const storedSession = createStoredSession({
+      projectId,
+      agentSource: "epic-chat",
+      metadata: { epicId, epicTitle: epic.title },
+    });
+    const sessionId = storedSession.id;
+
+    // Check for pending response from previous session
+    let pendingContext: { question: string; response: string } | undefined;
+    const pendingResponse = readResponse(projectId, epicId);
+    const pendingQuestion = readQuestion(projectId, epicId);
+
+    if (pendingResponse && pendingQuestion) {
+      console.log(
+        `[spawnForEpicChat] Found pending context - resuming conversation`,
+      );
+      pendingContext = {
+        question: pendingQuestion.question,
+        response: pendingResponse.answer,
+      };
+      clearResponse(projectId, epicId);
+      clearQuestion(projectId, epicId);
+    }
+
+    const prompt = buildEpicChatPrompt(epic, { pendingContext, initialMessage });
+
+    const meta: SessionMeta = {
+      projectId,
+      epicId,
+      epicTitle: epic.title,
+      worktreePath: projectPath,
+      startedAt: new Date().toISOString(),
+      status: "running",
+    };
+
+    const logPath = this.getSessionLogPath(sessionId);
+    const logStream = createWriteStream(logPath, { flags: "a" });
+
+    logStream.write(
+      JSON.stringify({
+        type: "session_start",
+        meta,
+        timestamp: new Date().toISOString(),
+      }) + "\n",
+    );
+
+    const mcpProxyPath = path.join(__dirname, "..", "..", "mcp", "proxy.js");
+
+    let nodePath: string;
+    try {
+      nodePath = execSync("which node", { encoding: "utf-8" }).trim();
+    } catch {
+      const fallbacks = [
+        path.join(process.env.HOME || "", ".nvm", "versions", "node", "v22.14.0", "bin", "node"),
+        path.join(process.env.HOME || "", ".local", "bin", "node"),
+        "/usr/local/bin/node",
+      ];
+      nodePath = fallbacks.find((p) => existsSync(p)) || "node";
+    }
+
+    const mcpConfig = {
+      mcpServers: {
+        "potato-cannon": {
+          command: nodePath,
+          args: [mcpProxyPath],
+          env: {
+            POTATO_PROJECT_ID: projectId,
+            POTATO_TICKET_ID: "",
+            POTATO_BRAINSTORM_ID: "",
+            POTATO_EPIC_ID: epicId,
+          },
+        },
+      },
+    };
+
+    // Load epic-chat agent from template
+    const agentType = "agents/epic-chat.md";
+    const agentDefinition = await tryLoadAgentDefinition(projectId, agentType);
+
+    if (!agentDefinition) {
+      throw new Error(
+        `Epic chat agent not found in template for project ${projectId}`,
+      );
+    }
+
+    const fullPrompt = `${agentDefinition.prompt}\n\n---\n\n${prompt}`;
+
+    const args = [
+      "--dangerously-skip-permissions",
+      "--output-format",
+      "stream-json",
+      "--verbose",
+      "--mcp-config",
+      JSON.stringify(mcpConfig),
+    ];
+
+    const disallowed = ["Skill(superpowers:*)", "AskUserQuestion"];
+    if (disallowed.length > 0) {
+      args.push("--disallowedTools", disallowed.join(","));
+    }
+
+    args.push("--print", fullPrompt);
+
+    let claudePath: string;
+    try {
+      claudePath = execSync("which claude", { encoding: "utf-8" }).trim();
+    } catch {
+      claudePath = path.join(process.env.HOME || "", ".local", "bin", "claude");
+    }
+
+    const proc = pty.spawn(claudePath, args, {
+      name: "xterm-256color",
+      cols: 120,
+      rows: 40,
+      cwd: projectPath,
+      env: {
+        ...process.env,
+        POTATO_PROJECT_ID: projectId,
+        POTATO_EPIC_ID: epicId,
+      },
+    });
+
+    let exitResolver!: () => void;
+    const exitPromise = new Promise<void>((resolve) => {
+      exitResolver = resolve;
+    });
+
+    this.sessions.set(sessionId, {
+      process: proc,
+      meta,
+      logStream,
+      exitPromise,
+      exitResolver,
+    });
+
+    this.eventEmitter.emit("session:started", { sessionId, ...meta });
+
+    let claudeSessionIdCaptured = false;
+
+    proc.onData((data: string) => {
+      const lines = data.split("\n").filter(Boolean);
+      for (const line of lines) {
+        try {
+          const event = JSON.parse(line);
+          const logEntry = { ...event, timestamp: new Date().toISOString() };
+          logStream.write(JSON.stringify(logEntry) + "\n");
+          this.eventEmitter.emit("session:output", {
+            sessionId,
+            ...meta,
+            event: logEntry,
+          });
+
+          if (
+            !claudeSessionIdCaptured &&
+            event.type === "system" &&
+            event.session_id
+          ) {
+            claudeSessionIdCaptured = true;
+            console.log(
+              `[spawnForEpicChat] Captured Claude session ID: ${event.session_id}`,
+            );
+            updateClaudeSessionId(sessionId, event.session_id);
+          }
+        } catch {
+          const logEntry = {
+            type: "raw",
+            content: line,
+            timestamp: new Date().toISOString(),
+          };
+          logStream.write(JSON.stringify(logEntry) + "\n");
+        }
+      }
+    });
+
+    proc.onExit(({ exitCode }) => {
+      const endMeta: SessionMeta = {
+        ...meta,
+        status: exitCode === 0 ? "completed" : "failed",
+        exitCode,
+        endedAt: new Date().toISOString(),
+      };
+
+      logStream.write(
+        JSON.stringify({
+          type: "session_end",
+          meta: endMeta,
+          timestamp: new Date().toISOString(),
+        }) + "\n",
+      );
+      logStream.end();
+
       endStoredSession(sessionId, exitCode);
 
       const session = this.sessions.get(sessionId);

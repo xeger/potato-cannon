@@ -4,6 +4,8 @@ export interface SessionMeta {
   ticketTitle?: string;
   brainstormId?: string;
   brainstormName?: string;
+  epicId?: string;
+  epicTitle?: string;
   phase?: string;
   worktreePath?: string;
   branchName?: string;
