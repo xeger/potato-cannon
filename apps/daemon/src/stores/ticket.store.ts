@@ -23,6 +23,7 @@ import type {
 import type { OrchestrationState } from "../types/orchestration.types.js";
 
 import { TERMINAL_PHASES } from "../types/ticket.types.js";
+import { getProjectPrefixFromDb } from "./utils.js";
 
 // =============================================================================
 // Types
@@ -75,17 +76,6 @@ function getProjectTicketsDir(projectId: string): string {
 
 function getTicketDir(projectId: string, ticketId: string): string {
   return path.join(getProjectTicketsDir(projectId), ticketId);
-}
-
-function getProjectPrefixFromDb(db: Database.Database, projectId: string): string {
-  const row = db.prepare("SELECT display_name, slug FROM projects WHERE id = ?").get(projectId) as { display_name: string; slug: string } | undefined;
-  const name = row?.display_name || row?.slug || "TKT";
-  return (
-    name
-      .replace(/[^a-zA-Z0-9]/g, "")
-      .substring(0, 3)
-      .toUpperCase() || "TKT"
-  );
 }
 
 // =============================================================================
