@@ -81,7 +81,8 @@ interface AppState {
   closeAddProjectModal: () => void
 
   addTicketModalOpen: boolean
-  openAddTicketModal: () => void
+  addTicketModalEpicId: string | null
+  openAddTicketModal: (epicId?: string) => void
   closeAddTicketModal: () => void
 
   createFolderModalOpen: boolean
@@ -294,8 +295,9 @@ export const useAppStore = create<AppState>()(
 
       // Add ticket modal
       addTicketModalOpen: false,
-      openAddTicketModal: () => set({ addTicketModalOpen: true }),
-      closeAddTicketModal: () => set({ addTicketModalOpen: false }),
+      addTicketModalEpicId: null,
+      openAddTicketModal: (epicId) => set({ addTicketModalOpen: true, addTicketModalEpicId: epicId || null }),
+      closeAddTicketModal: () => set({ addTicketModalOpen: false, addTicketModalEpicId: null }),
 
       // Create folder modal
       createFolderModalOpen: false,

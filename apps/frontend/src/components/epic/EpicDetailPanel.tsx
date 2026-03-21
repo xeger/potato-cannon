@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback } from 'react'
 import { useLocation, useNavigate } from '@tanstack/react-router'
-import { X, ExternalLink } from 'lucide-react'
+import { X, ExternalLink, Plus } from 'lucide-react'
 import { useAppStore } from '@/stores/appStore'
 import { useEpic, useUpdateEpic, useDeleteEpic } from '@/hooks/queries'
 import { EpicProgressBar } from './EpicProgressBar'
@@ -30,6 +30,7 @@ export function EpicDetailPanel() {
   const epicSheetProjectId = useAppStore((s) => s.epicSheetProjectId)
   const closeEpicSheet = useAppStore((s) => s.closeEpicSheet)
   const openTicketSheet = useAppStore((s) => s.openTicketSheet)
+  const openAddTicketModal = useAppStore((s) => s.openAddTicketModal)
   const currentProjectId = useAppStore((s) => s.currentProjectId)
 
   const location = useLocation()
@@ -133,7 +134,7 @@ export function EpicDetailPanel() {
   return (
     <>
       <div className="epic-detail-panel" data-open={isOpen}>
-        <div className="flex flex-col h-full w-[480px] max-w-full">
+        <div className="flex flex-col h-full w-[600px] max-w-full">
           {epic && (
             <>
               {/* Header */}
@@ -246,9 +247,20 @@ export function EpicDetailPanel() {
 
                 {/* Child Tickets */}
                 <div>
-                  <h3 className="text-xs font-medium text-text-muted uppercase tracking-wider mb-2">
-                    Tickets ({epic.tickets?.length || 0})
-                  </h3>
+                  <div className="flex items-center justify-between mb-2">
+                    <h3 className="text-xs font-medium text-text-muted uppercase tracking-wider">
+                      Tickets ({epic.tickets?.length || 0})
+                    </h3>
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      className="h-6 text-xs px-2"
+                      onClick={() => openAddTicketModal(epic.id)}
+                    >
+                      <Plus className="h-3 w-3 mr-1" />
+                      Add Ticket
+                    </Button>
+                  </div>
                   {epic.tickets && epic.tickets.length > 0 ? (
                     <div className="space-y-1">
                       {epic.tickets.map((ticket) => (

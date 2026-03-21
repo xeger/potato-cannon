@@ -1034,7 +1034,8 @@ button, a, [role="button"] {
 }
 
 .epic-detail-panel[data-open="true"] {
-  width: 480px;
+  width: 600px;
+  max-width: 40vw;
 }
 
 .epic-detail-panel[data-open="false"] {
@@ -1054,6 +1055,7 @@ button, a, [role="button"] {
     bottom: calc(72px + env(safe-area-inset-bottom, 0px));
     height: auto;
     width: auto !important;
+    max-width: none !important;
     border: none;
     border-radius: var(--radius-lg);
     background: var(--color-bg-secondary);

@@ -145,7 +145,7 @@ export function BoardColumn({
                 </IconButton>
               )}
               {showAddTicket && (
-                <IconButton tooltip="Create new ticket" onClick={openAddTicketModal}>
+                <IconButton tooltip="Create new ticket" onClick={() => openAddTicketModal()}>
                   <Plus className="h-4 w-4" />
                 </IconButton>
               )}

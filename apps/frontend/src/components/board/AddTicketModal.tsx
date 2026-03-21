@@ -1,4 +1,4 @@
-import { useState, useCallback, type KeyboardEvent } from 'react'
+import { useState, useCallback, useEffect, type KeyboardEvent } from 'react'
 import { useQueryClient } from '@tanstack/react-query'
 import { Loader2 } from 'lucide-react'
 import { useAppStore } from '@/stores/appStore'
@@ -27,12 +27,20 @@ export function AddTicketModal() {
   const queryClient = useQueryClient()
   const currentProjectId = useAppStore((s) => s.currentProjectId)
   const isOpen = useAppStore((s) => s.addTicketModalOpen)
+  const preSelectedEpicId = useAppStore((s) => s.addTicketModalEpicId)
   const closeModal = useAppStore((s) => s.closeAddTicketModal)
   const openCreateEpicModal = useAppStore((s) => s.openCreateEpicModal)
   const { data: epics } = useEpics(currentProjectId)
 
   const [title, setTitle] = useState('')
   const [selectedEpicId, setSelectedEpicId] = useState<string>('')
+
+  // Sync pre-selected epicId when modal opens
+  useEffect(() => {
+    if (isOpen && preSelectedEpicId) {
+      setSelectedEpicId(preSelectedEpicId)
+    }
+  }, [isOpen, preSelectedEpicId])
   const [description, setDescription] = useState('')
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [error, setError] = useState<string | null>(null)

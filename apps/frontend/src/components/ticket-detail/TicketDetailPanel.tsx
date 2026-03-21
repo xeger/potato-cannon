@@ -9,6 +9,7 @@ import {
   useProjects,
   useTemplate,
   useEpics,
+  useAssignTicketToEpic,
 } from '@/hooks/queries'
 import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs'
 import {
@@ -57,6 +58,7 @@ export function TicketDetailPanel() {
   const openEpicSheet = useAppStore((s) => s.openEpicSheet)
   const navigate = useNavigate()
   const { data: epics } = useEpics(currentProjectId)
+  const assignToEpic = useAssignTicketToEpic()
 
   // Only show panel on board view and when viewing the same project where the ticket was opened
   const location = useLocation()
@@ -234,6 +236,36 @@ export function TicketDetailPanel() {
                   <p className="text-xs text-text-muted mt-2">
                     Created {timeAgo(ticket.createdAt)} • Updated {timeAgo(ticket.updatedAt)}
                   </p>
+
+                  {/* Epic assignment */}
+                  {epics && epics.length > 0 && (
+                    <div className="mt-3 flex items-center gap-2">
+                      <span className="text-xs text-text-muted">Epic:</span>
+                      <Select
+                        value={ticket.epicId || '__none__'}
+                        onValueChange={(value) => {
+                          if (!currentProjectId || !ticketSheetTicketId) return
+                          assignToEpic.mutate({
+                            projectId: currentProjectId,
+                            ticketId: ticketSheetTicketId,
+                            epicId: value === '__none__' ? null : value,
+                          })
+                        }}
+                      >
+                        <SelectTrigger className="h-7 text-xs w-[200px]">
+                          <SelectValue />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="__none__">None</SelectItem>
+                          {epics.map((epic) => (
+                            <SelectItem key={epic.id} value={epic.id}>
+                              {epic.identifier} — {epic.title}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    </div>
+                  )}
 
                   {/* Phase selector - mobile only */}
                   <div className="mt-4 flex items-center gap-2 sm:hidden">
