@@ -117,8 +117,9 @@ export function ActivityTab({ projectId, ticketId, currentPhase: propPhase, hist
     // Only process events for this ticket
     if (data.ticketId !== ticketId) return
 
-    // Clear activity when session ends
+    // Clear activity and waiting state when session ends
     setCurrentActivity(null)
+    setIsWaitingForResponse(false)
   }, [ticketId]))
 
   const messagesEndRef = useRef<HTMLDivElement>(null)
@@ -282,7 +283,7 @@ export function ActivityTab({ projectId, ticketId, currentPhase: propPhase, hist
         </div>
 
         {/* Option buttons */}
-        {pendingOptions.length > 0 && isAgentActive && (
+        {isAgentActive && pendingOptions.length > 0 && (
           <div className="pb-2 px-7 flex flex-wrap gap-2 shrink-0">
             {pendingOptions.map((option, index) => (
               <Button

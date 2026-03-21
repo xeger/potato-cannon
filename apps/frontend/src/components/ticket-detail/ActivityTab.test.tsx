@@ -36,13 +36,16 @@ vi.mock('@/stores/appStore', () => ({
 
 // Mock SSE hooks - store callbacks so we can trigger them
 let sessionOutputCallback: ((data: Record<string, unknown>) => void) | null = null
+let ticketMessageCallback: ((data: Record<string, unknown>) => void) | null = null
 let sessionEndedCallback: ((data: { ticketId?: string }) => void) | null = null
 
 vi.mock('@/hooks/useSSE', () => ({
   useSessionOutput: vi.fn((cb: (data: Record<string, unknown>) => void) => {
     sessionOutputCallback = cb
   }),
-  useTicketMessage: vi.fn(() => {}),
+  useTicketMessage: vi.fn((cb: (data: Record<string, unknown>) => void) => {
+    ticketMessageCallback = cb
+  }),
   useSessionEnded: vi.fn((cb: (data: { ticketId?: string }) => void) => {
     sessionEndedCallback = cb
   }),
@@ -53,6 +56,8 @@ vi.mock('@/api/client', () => ({
   api: {
     getTicketMessages: vi.fn().mockResolvedValue({ messages: [] }),
     respondToQuestion: vi.fn(),
+    sendTicketInput: vi.fn().mockResolvedValue({}),
+    getTicket: vi.fn().mockResolvedValue({ phase: 'Build' }),
   },
 }))
 
@@ -70,6 +75,10 @@ vi.mock('./TaskList', () => ({
   TaskList: () => null,
 }))
 
+vi.mock('./CollapsibleTaskPanel', () => ({
+  CollapsibleTaskPanel: () => null,
+}))
+
 vi.mock('./RestartPhaseButton', () => ({
   RestartPhaseButton: () => null,
 }))
@@ -78,6 +87,8 @@ describe('ActivityTab', () => {
   beforeEach(() => {
     vi.clearAllMocks()
     sessionOutputCallback = null
+    ticketMessageCallback = null
+    sessionEndedCallback = null
   })
 
   afterEach(() => {
@@ -274,6 +285,7 @@ describe('ActivityTab - Session Ended Clears Waiting State', () => {
       isLoading: false,
     }
     sessionOutputCallback = null
+    ticketMessageCallback = null
     sessionEndedCallback = null
   })
 
