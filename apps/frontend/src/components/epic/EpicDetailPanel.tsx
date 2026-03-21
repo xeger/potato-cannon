@@ -1,9 +1,11 @@
 import { useState, useEffect, useCallback } from 'react'
 import { useLocation, useNavigate } from '@tanstack/react-router'
-import { X, ExternalLink, Plus } from 'lucide-react'
+import { X, ExternalLink, Plus, ChevronDown, ChevronRight } from 'lucide-react'
 import { useAppStore } from '@/stores/appStore'
 import { useEpic, useUpdateEpic, useDeleteEpic } from '@/hooks/queries'
 import { EpicProgressBar } from './EpicProgressBar'
+import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs'
+import { ScrollArea } from '@/components/ui/scroll-area'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Textarea } from '@/components/ui/textarea'
@@ -50,6 +52,8 @@ export function EpicDetailPanel() {
   const [editingDescription, setEditingDescription] = useState(false)
   const [descriptionValue, setDescriptionValue] = useState('')
   const [deleteConfirmOpen, setDeleteConfirmOpen] = useState(false)
+  const [activeTab, setActiveTab] = useState<string>('details')
+  const [descriptionExpanded, setDescriptionExpanded] = useState(false)
 
   // Sync title/description when epic data changes
   useEffect(() => {
@@ -58,6 +62,12 @@ export function EpicDetailPanel() {
       setDescriptionValue(epic.description || '')
     }
   }, [epic?.id, epic?.title, epic?.description])
+
+  // Reset tab state when epic changes
+  useEffect(() => {
+    setActiveTab('details')
+    setDescriptionExpanded(false)
+  }, [epicSheetEpicId])
 
   // Escape key handler
   useEffect(() => {
@@ -180,120 +190,143 @@ export function EpicDetailPanel() {
                 </button>
               </div>
 
-              {/* Body */}
-              <div className="flex-1 overflow-y-auto p-4 space-y-6">
-                {/* Progress */}
-                <div>
-                  <h3 className="text-xs font-medium text-text-muted uppercase tracking-wider mb-2">Progress</h3>
-                  <EpicProgressBar doneCount={epic.doneCount} totalCount={epic.ticketCount} />
-                  <p className="text-xs text-text-muted mt-1">
-                    {epic.doneCount}/{epic.ticketCount} tickets done
-                  </p>
-                </div>
+              {/* Tabs */}
+              <Tabs value={activeTab} onValueChange={setActiveTab} className="flex-1 flex flex-col min-h-0">
+                <TabsList className="mx-4 mt-2 mb-2 w-fit">
+                  <TabsTrigger value="chat">Chat</TabsTrigger>
+                  <TabsTrigger value="details">Details</TabsTrigger>
+                  <TabsTrigger value="settings">Settings</TabsTrigger>
+                </TabsList>
 
-                {/* Phase Breakdown */}
-                {Object.keys(epic.phaseBreakdown).length > 0 && (
-                  <div>
-                    <h3 className="text-xs font-medium text-text-muted uppercase tracking-wider mb-2">By Phase</h3>
-                    <div className="flex flex-wrap gap-2">
-                      {Object.entries(epic.phaseBreakdown).map(([phase, count]) => (
-                        <span
-                          key={phase}
-                          className="text-xs px-2 py-1 rounded bg-bg-tertiary text-text-secondary"
-                        >
-                          {phase}: {count}
-                        </span>
-                      ))}
-                    </div>
-                  </div>
-                )}
+                {/* Chat Tab - placeholder for now */}
+                <TabsContent value="chat" className="mt-0 flex-1 flex flex-col min-h-0">
+                  <EpicChatTab projectId={epicSheetProjectId!} epicId={epicSheetEpicId!} />
+                </TabsContent>
 
-                {/* Description */}
-                <div>
-                  <h3 className="text-xs font-medium text-text-muted uppercase tracking-wider mb-2">Description</h3>
-                  {editingDescription ? (
-                    <div>
-                      <Textarea
-                        value={descriptionValue}
-                        onChange={(e) => setDescriptionValue(e.target.value)}
-                        className="min-h-[120px] resize-y text-sm"
-                        placeholder="Shared context for agents working on child tickets..."
-                      />
-                      <div className="flex gap-2 mt-2">
-                        <Button size="sm" onClick={handleSaveDescription}>Save</Button>
-                        <Button
-                          size="sm"
-                          variant="outline"
-                          onClick={() => {
-                            setDescriptionValue(epic.description || '')
-                            setEditingDescription(false)
-                          }}
+                {/* Details Tab */}
+                <TabsContent value="details" className="mt-0 flex-1 min-h-0">
+                  <ScrollArea className="h-full">
+                    <div className="p-4 space-y-6">
+                      {/* Progress */}
+                      <div>
+                        <h3 className="text-xs font-medium text-text-muted uppercase tracking-wider mb-2">Progress</h3>
+                        <EpicProgressBar doneCount={epic.doneCount} totalCount={epic.ticketCount} />
+                        <p className="text-xs text-text-muted mt-1">
+                          {epic.doneCount}/{epic.ticketCount} tickets done
+                        </p>
+                      </div>
+
+                      {/* Phase Breakdown */}
+                      {Object.keys(epic.phaseBreakdown).length > 0 && (
+                        <div>
+                          <h3 className="text-xs font-medium text-text-muted uppercase tracking-wider mb-2">By Phase</h3>
+                          <div className="flex flex-wrap gap-2">
+                            {Object.entries(epic.phaseBreakdown).map(([phase, count]) => (
+                              <span key={phase} className="text-xs px-2 py-1 rounded bg-bg-tertiary text-text-secondary">
+                                {phase}: {count}
+                              </span>
+                            ))}
+                          </div>
+                        </div>
+                      )}
+
+                      {/* Collapsible Description */}
+                      <div>
+                        <button
+                          type="button"
+                          onClick={() => setDescriptionExpanded(!descriptionExpanded)}
+                          className="flex items-center gap-1 text-xs font-medium text-text-muted uppercase tracking-wider mb-2 hover:text-text-secondary transition-colors"
                         >
-                          Cancel
-                        </Button>
+                          {descriptionExpanded ? <ChevronDown className="h-3 w-3" /> : <ChevronRight className="h-3 w-3" />}
+                          Description
+                        </button>
+                        {descriptionExpanded && (
+                          editingDescription ? (
+                            <div>
+                              <Textarea
+                                value={descriptionValue}
+                                onChange={(e) => setDescriptionValue(e.target.value)}
+                                className="min-h-[120px] resize-y text-sm"
+                                placeholder="Shared context for agents working on child tickets..."
+                              />
+                              <div className="flex gap-2 mt-2">
+                                <Button size="sm" onClick={handleSaveDescription}>Save</Button>
+                                <Button size="sm" variant="outline" onClick={() => {
+                                  setDescriptionValue(epic.description || '')
+                                  setEditingDescription(false)
+                                }}>Cancel</Button>
+                              </div>
+                            </div>
+                          ) : (
+                            <div
+                              className="text-sm text-text-secondary cursor-pointer hover:text-text-primary transition-colors min-h-[40px] p-2 rounded border border-transparent hover:border-border"
+                              onClick={() => setEditingDescription(true)}
+                            >
+                              {epic.description || (
+                                <span className="text-text-muted italic">Click to add description...</span>
+                              )}
+                            </div>
+                          )
+                        )}
+                        {!descriptionExpanded && epic.description && (
+                          <p className="text-sm text-text-muted line-clamp-2 pl-4">{epic.description}</p>
+                        )}
+                      </div>
+
+                      {/* Child Tickets */}
+                      <div>
+                        <div className="flex items-center justify-between mb-2">
+                          <h3 className="text-xs font-medium text-text-muted uppercase tracking-wider">
+                            Tickets ({epic.tickets?.length || 0})
+                          </h3>
+                          <Button size="sm" variant="outline" className="h-6 text-xs px-2"
+                            onClick={() => openAddTicketModal(epic.id)}>
+                            <Plus className="h-3 w-3 mr-1" />
+                            Add Ticket
+                          </Button>
+                        </div>
+                        {epic.tickets && epic.tickets.length > 0 ? (
+                          <div className="space-y-1">
+                            {epic.tickets.map((ticket) => (
+                              <button key={ticket.id} type="button" onClick={() => handleTicketClick(ticket.id)}
+                                className="w-full flex items-center gap-2 p-2 rounded hover:bg-bg-hover transition-colors text-left group">
+                                <span className="text-xs font-mono text-text-muted">{ticket.id}</span>
+                                <span className="text-sm text-text-primary flex-1 truncate">{ticket.title}</span>
+                                <span className="text-xs text-text-muted">{ticket.phase}</span>
+                                <ExternalLink className="h-3 w-3 text-text-muted opacity-0 group-hover:opacity-100 transition-opacity" />
+                              </button>
+                            ))}
+                          </div>
+                        ) : (
+                          <p className="text-xs text-text-muted italic">No tickets assigned.</p>
+                        )}
                       </div>
                     </div>
-                  ) : (
-                    <div
-                      className="text-sm text-text-secondary cursor-pointer hover:text-text-primary transition-colors min-h-[40px] p-2 rounded border border-transparent hover:border-border"
-                      onClick={() => setEditingDescription(true)}
-                    >
-                      {epic.description || (
-                        <span className="text-text-muted italic">Click to add description...</span>
-                      )}
-                    </div>
-                  )}
-                </div>
+                  </ScrollArea>
+                </TabsContent>
 
-                {/* Child Tickets */}
-                <div>
-                  <div className="flex items-center justify-between mb-2">
-                    <h3 className="text-xs font-medium text-text-muted uppercase tracking-wider">
-                      Tickets ({epic.tickets?.length || 0})
-                    </h3>
-                    <Button
-                      size="sm"
-                      variant="outline"
-                      className="h-6 text-xs px-2"
-                      onClick={() => openAddTicketModal(epic.id)}
-                    >
-                      <Plus className="h-3 w-3 mr-1" />
-                      Add Ticket
-                    </Button>
-                  </div>
-                  {epic.tickets && epic.tickets.length > 0 ? (
-                    <div className="space-y-1">
-                      {epic.tickets.map((ticket) => (
-                        <button
-                          key={ticket.id}
-                          type="button"
-                          onClick={() => handleTicketClick(ticket.id)}
-                          className="w-full flex items-center gap-2 p-2 rounded hover:bg-bg-hover transition-colors text-left group"
+                {/* Settings Tab */}
+                <TabsContent value="settings" className="mt-0 flex-1 min-h-0">
+                  <ScrollArea className="h-full">
+                    <div className="p-4 space-y-6">
+                      <div>
+                        <h3 className="text-xs font-medium text-text-muted uppercase tracking-wider mb-4">Danger Zone</h3>
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          className="text-accent-red hover:text-accent-red"
+                          onClick={() => setDeleteConfirmOpen(true)}
                         >
-                          <span className="text-xs font-mono text-text-muted">{ticket.id}</span>
-                          <span className="text-sm text-text-primary flex-1 truncate">{ticket.title}</span>
-                          <span className="text-xs text-text-muted">{ticket.phase}</span>
-                          <ExternalLink className="h-3 w-3 text-text-muted opacity-0 group-hover:opacity-100 transition-opacity" />
-                        </button>
-                      ))}
+                          Delete Epic
+                        </Button>
+                        <p className="text-xs text-text-muted mt-2">
+                          Child tickets will be unlinked but not deleted.
+                        </p>
+                      </div>
                     </div>
-                  ) : (
-                    <p className="text-xs text-text-muted italic">No tickets assigned.</p>
-                  )}
-                </div>
-              </div>
-
-              {/* Footer */}
-              <div className="p-4 border-t border-border">
-                <Button
-                  variant="outline"
-                  size="sm"
-                  className="text-accent-red hover:text-accent-red"
-                  onClick={() => setDeleteConfirmOpen(true)}
-                >
-                  Delete Epic
-                </Button>
-              </div>
+                  </ScrollArea>
+                </TabsContent>
+              </Tabs>
             </>
           )}
         </div>
@@ -323,5 +356,13 @@ export function EpicDetailPanel() {
         </DialogContent>
       </Dialog>
     </>
+  )
+}
+
+function EpicChatTab({ projectId: _projectId, epicId: _epicId }: { projectId: string; epicId: string }) {
+  return (
+    <div className="flex-1 flex items-center justify-center text-text-muted text-sm">
+      <p>Epic chat coming soon...</p>
+    </div>
   )
 }
