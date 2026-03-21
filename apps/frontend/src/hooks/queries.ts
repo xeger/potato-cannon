@@ -448,3 +448,67 @@ export function useDeleteAgentOverride() {
     }
   })
 }
+
+// ============ Epics ============
+
+export function useEpics(projectId: string | null) {
+  return useQuery({
+    queryKey: ['epics', projectId],
+    queryFn: () => api.getEpics(projectId!),
+    enabled: !!projectId,
+  })
+}
+
+export function useEpic(projectId: string | null, epicId: string | null) {
+  return useQuery({
+    queryKey: ['epic', projectId, epicId],
+    queryFn: () => api.getEpic(projectId!, epicId!),
+    enabled: !!projectId && !!epicId,
+  })
+}
+
+export function useCreateEpic() {
+  const queryClient = useQueryClient()
+  return useMutation({
+    mutationFn: ({ projectId, title, description }: { projectId: string; title: string; description?: string }) =>
+      api.createEpic(projectId, title, description),
+    onSuccess: (_data, variables) => {
+      queryClient.invalidateQueries({ queryKey: ['epics', variables.projectId] })
+    },
+  })
+}
+
+export function useUpdateEpic() {
+  const queryClient = useQueryClient()
+  return useMutation({
+    mutationFn: ({ projectId, epicId, updates }: { projectId: string; epicId: string; updates: { title?: string; description?: string } }) =>
+      api.updateEpic(projectId, epicId, updates),
+    onSuccess: (_data, variables) => {
+      queryClient.invalidateQueries({ queryKey: ['epics', variables.projectId] })
+      queryClient.invalidateQueries({ queryKey: ['epic', variables.projectId, variables.epicId] })
+    },
+  })
+}
+
+export function useDeleteEpic() {
+  const queryClient = useQueryClient()
+  return useMutation({
+    mutationFn: ({ projectId, epicId }: { projectId: string; epicId: string }) =>
+      api.deleteEpic(projectId, epicId),
+    onSuccess: (_data, variables) => {
+      queryClient.invalidateQueries({ queryKey: ['epics', variables.projectId] })
+    },
+  })
+}
+
+export function useAssignTicketToEpic() {
+  const queryClient = useQueryClient()
+  return useMutation({
+    mutationFn: ({ projectId, ticketId, epicId }: { projectId: string; ticketId: string; epicId: string | null }) =>
+      api.assignTicketToEpic(projectId, ticketId, epicId),
+    onSuccess: (_data, variables) => {
+      queryClient.invalidateQueries({ queryKey: ['epics', variables.projectId] })
+      queryClient.invalidateQueries({ queryKey: ['tickets', variables.projectId] })
+    },
+  })
+}

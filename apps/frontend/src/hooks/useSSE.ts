@@ -22,6 +22,9 @@ type SSEEventType =
   | 'log:entry'
   | 'processing:sync'
   | 'folder:updated'
+  | 'epic:created'
+  | 'epic:updated'
+  | 'epic:deleted'
 
 interface SSEEventData {
   [key: string]: unknown
@@ -93,6 +96,14 @@ export function useSSE() {
       // Folder events - invalidate folders query
       eventSource.addEventListener('folder:updated', () => {
         queryClient.refetchQueries({ queryKey: ['folders'] })
+      })
+
+      // Epic events — invalidate epics queries
+      const epicEvents: SSEEventType[] = ['epic:created', 'epic:updated', 'epic:deleted']
+      epicEvents.forEach(event => {
+        eventSource.addEventListener(event, () => {
+          queryClient.refetchQueries({ queryKey: ['epics'] })
+        })
       })
 
       // Session events - invalidate sessions and tickets queries
