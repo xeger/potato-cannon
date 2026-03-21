@@ -13,6 +13,7 @@ import {
   getRalphIterations,
   type RalphFeedback,
 } from "../../stores/ralph-feedback.store.js";
+import { getEpicById } from "../../stores/epic.store.js";
 
 /**
  * Load context artifacts based on agent's artifact configuration.
@@ -154,12 +155,22 @@ export async function buildAgentPrompt(
     }
   }
 
+  // Compute epic identifier for prompt injection
+  let epicLine = "Not part of an epic";
+  if (ticket.epicId) {
+    const epic = getEpicById(ticket.epicId);
+    if (epic) {
+      epicLine = epic.identifier;
+    }
+  }
+
   const context = `## Context
 
 **Project:** ${projectId}
 **Ticket:** ${ticketId}
 **Title:** ${ticket.title}
 **Phase:** ${phase}
+**Epic:** ${epicLine}
 
 ## Ticket Description
 
