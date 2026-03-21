@@ -282,7 +282,7 @@ export function ActivityTab({ projectId, ticketId, currentPhase: propPhase, hist
         </div>
 
         {/* Option buttons */}
-        {pendingOptions.length > 0 && (
+        {pendingOptions.length > 0 && isAgentActive && (
           <div className="pb-2 px-7 flex flex-wrap gap-2 shrink-0">
             {pendingOptions.map((option, index) => (
               <Button
