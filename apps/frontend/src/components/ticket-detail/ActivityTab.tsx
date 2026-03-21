@@ -6,6 +6,7 @@ import { api } from '@/api/client'
 import { Button } from '@/components/ui/button'
 import { Textarea } from '@/components/ui/textarea'
 import { cn, timeAgo, formatToolActivity } from '@/lib/utils'
+import { useAppStore } from '@/stores/appStore'
 import { Linkify } from '@/components/ui/linkify'
 import { ArtifactViewerFull } from './ArtifactViewerFull'
 import { CollapsibleTaskPanel } from './CollapsibleTaskPanel'
@@ -40,6 +41,9 @@ export function ActivityTab({ projectId, ticketId, currentPhase: propPhase, hist
   const [selectedArtifact, setSelectedArtifact] = useState<Artifact | null>(null)
   const [currentActivity, setCurrentActivity] = useState<string | null>(null)
   const [currentPhase, setCurrentPhase] = useState<string | null>(null)
+  const isProcessing = useAppStore((s) => s.isTicketProcessing(projectId, ticketId))
+  const isPending = useAppStore((s) => s.isTicketPending(projectId, ticketId))
+  const isAgentActive = isProcessing || isPending
 
   const queryClient = useQueryClient()
 
@@ -313,7 +317,7 @@ export function ActivityTab({ projectId, ticketId, currentPhase: propPhase, hist
               onKeyDown={handleKeyDown}
               placeholder="Type your response..."
               className="min-h-[44px] max-h-[120px] resize-none"
-              disabled={isSubmitting}
+              disabled={!isAgentActive || isSubmitting}
             />
             <Button
               onClick={() => handleSend(input)}
