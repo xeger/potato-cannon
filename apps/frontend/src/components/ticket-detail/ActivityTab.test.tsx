@@ -7,11 +7,13 @@ HTMLElement.prototype.scrollIntoView = vi.fn()
 
 // Mock TanStack Query
 const mockRefetchQueries = vi.fn()
+let mockUseQueryReturnValue = {
+  data: [] as unknown[],
+  isLoading: false,
+}
+
 vi.mock('@tanstack/react-query', () => ({
-  useQuery: vi.fn().mockReturnValue({
-    data: [],
-    isLoading: false,
-  }),
+  useQuery: vi.fn(() => mockUseQueryReturnValue),
   useQueryClient: () => ({
     refetchQueries: mockRefetchQueries,
   }),
@@ -33,13 +35,16 @@ vi.mock('@/stores/appStore', () => ({
 
 // Mock SSE hooks - store callbacks so we can trigger them
 let sessionOutputCallback: ((data: Record<string, unknown>) => void) | null = null
+let sessionEndedCallback: ((data: { ticketId?: string }) => void) | null = null
 
 vi.mock('@/hooks/useSSE', () => ({
   useSessionOutput: vi.fn((cb: (data: Record<string, unknown>) => void) => {
     sessionOutputCallback = cb
   }),
   useTicketMessage: vi.fn(() => {}),
-  useSessionEnded: vi.fn(() => {}),
+  useSessionEnded: vi.fn((cb: (data: { ticketId?: string }) => void) => {
+    sessionEndedCallback = cb
+  }),
 }))
 
 // Mock API client
@@ -206,6 +211,10 @@ describe('ActivityTab - Option Buttons Hidden When No Agent Active', () => {
     vi.clearAllMocks()
     mockIsTicketProcessing.mockReturnValue(false)
     mockIsTicketPending.mockReturnValue(false)
+    mockUseQueryReturnValue = {
+      data: [],
+      isLoading: false,
+    }
   })
 
   afterEach(() => {
@@ -213,9 +222,8 @@ describe('ActivityTab - Option Buttons Hidden When No Agent Active', () => {
   })
 
   it('hides option buttons when no agent is active even if pendingOptions exist', () => {
-    // Set up messages with options via the useQuery mock
-    const { useQuery } = require('@tanstack/react-query')
-    useQuery.mockReturnValue({
+    // Set up messages with options via the useQuery mock BEFORE rendering
+    mockUseQueryReturnValue = {
       data: [
         {
           type: 'question',
@@ -225,7 +233,7 @@ describe('ActivityTab - Option Buttons Hidden When No Agent Active', () => {
         },
       ],
       isLoading: false,
-    })
+    }
 
     render(<ActivityTab projectId="test-project" ticketId="POT-1" />)
 
@@ -234,10 +242,8 @@ describe('ActivityTab - Option Buttons Hidden When No Agent Active', () => {
   })
 
   it('shows option buttons when agent is active and pendingOptions exist', () => {
-    mockIsTicketPending.mockReturnValue(true)
-
-    const { useQuery } = require('@tanstack/react-query')
-    useQuery.mockReturnValue({
+    // Set up messages with options via the useQuery mock BEFORE rendering
+    mockUseQueryReturnValue = {
       data: [
         {
           type: 'question',
@@ -247,7 +253,8 @@ describe('ActivityTab - Option Buttons Hidden When No Agent Active', () => {
         },
       ],
       isLoading: false,
-    })
+    }
+    mockIsTicketPending.mockReturnValue(true)
 
     render(<ActivityTab projectId="test-project" ticketId="POT-1" />)
 
@@ -257,19 +264,16 @@ describe('ActivityTab - Option Buttons Hidden When No Agent Active', () => {
 })
 
 describe('ActivityTab - Session Ended Clears Waiting State', () => {
-  let sessionEndedCallback: ((data: { ticketId?: string }) => void) | null = null
-
   beforeEach(() => {
     vi.clearAllMocks()
     mockIsTicketProcessing.mockReturnValue(false)
     mockIsTicketPending.mockReturnValue(false)
+    mockUseQueryReturnValue = {
+      data: [],
+      isLoading: false,
+    }
+    sessionOutputCallback = null
     sessionEndedCallback = null
-
-    // Re-wire the useSessionEnded mock to capture the callback
-    const { useSessionEnded } = require('@/hooks/useSSE')
-    useSessionEnded.mockImplementation((cb: (data: { ticketId?: string }) => void) => {
-      sessionEndedCallback = cb
-    })
   })
 
   afterEach(() => {
@@ -278,10 +282,6 @@ describe('ActivityTab - Session Ended Clears Waiting State', () => {
 
   it('clears ThinkingIndicator when session ends', async () => {
     mockIsTicketProcessing.mockReturnValue(true)
-
-    // Mock API to simulate sending a message (which sets isWaitingForResponse)
-    const { api } = require('@/api/client')
-    api.sendTicketInput = vi.fn().mockResolvedValue({})
 
     const { default: userEvent } = await import('@testing-library/user-event')
 
@@ -298,7 +298,7 @@ describe('ActivityTab - Session Ended Clears Waiting State', () => {
       expect(screen.getByText('Thinking')).toBeTruthy()
     })
 
-    // Simulate session ending
+    // Simulate session ending via the captured callback
     expect(sessionEndedCallback).not.toBeNull()
     sessionEndedCallback!({ ticketId: 'POT-1' })
 
