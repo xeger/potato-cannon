@@ -1,5 +1,5 @@
 import { Link, useLocation } from '@tanstack/react-router'
-import { LayoutDashboard, SlidersHorizontal } from 'lucide-react'
+import { LayoutDashboard, Layers, SlidersHorizontal } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import {
   Tooltip,
@@ -17,6 +17,7 @@ export function ViewTabs() {
   if (!projectId) return null // Don't show tabs if not on a project route
 
   const isBoardActive = location.pathname.endsWith('/board')
+  const isEpicsActive = location.pathname.endsWith('/epics')
   const isConfigureActive = location.pathname.endsWith('/configure')
 
   return (
@@ -38,6 +39,24 @@ export function ViewTabs() {
           </Link>
         </TooltipTrigger>
         <TooltipContent>An AI Assisted Kanban board</TooltipContent>
+      </Tooltip>
+      <Tooltip>
+        <TooltipTrigger asChild>
+          <Link
+            to="/projects/$projectId/epics"
+            params={{ projectId }}
+            className={cn(
+              'flex items-center gap-1.5 px-3 py-1.5 rounded-md text-sm transition-colors',
+              isEpicsActive
+                ? 'bg-bg-tertiary text-text-primary'
+                : 'text-text-secondary hover:bg-bg-hover hover:text-text-primary'
+            )}
+          >
+            <Layers className="h-4 w-4" />
+            <span>Epics</span>
+          </Link>
+        </TooltipTrigger>
+        <TooltipContent>Group related tickets into epics</TooltipContent>
       </Tooltip>
       <div className="flex-1" />
       <Tooltip>
