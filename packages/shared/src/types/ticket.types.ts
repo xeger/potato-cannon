@@ -12,6 +12,7 @@ export interface Ticket {
   archivedAt?: string
   conversationId?: string
   pendingPhase?: string
+  epicId?: string
 }
 
 export interface ArchiveResult {
