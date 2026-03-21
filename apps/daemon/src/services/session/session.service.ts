@@ -1218,7 +1218,7 @@ export class SessionService {
     const currentTicket = getTicket(projectId, ticketId);
     const previousPhase = currentTicket.phase;
 
-    const ticket = await updateTicket(projectId, ticketId, { phase: "Blocked" });
+    const ticket = await updateTicket(projectId, ticketId, { phase: "Blocked", reason });
     await logToDaemon(projectId, ticketId, `Ticket blocked: ${reason}`);
 
     // Emit SSE events so frontend updates
