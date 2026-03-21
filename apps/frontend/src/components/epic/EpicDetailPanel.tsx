@@ -4,6 +4,7 @@ import { X, ExternalLink, Plus, ChevronDown, ChevronRight } from 'lucide-react'
 import { useAppStore } from '@/stores/appStore'
 import { useEpic, useUpdateEpic, useDeleteEpic } from '@/hooks/queries'
 import { EpicProgressBar } from './EpicProgressBar'
+import { EpicChat } from './EpicChat'
 import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs'
 import { ScrollArea } from '@/components/ui/scroll-area'
 import { Button } from '@/components/ui/button'
@@ -359,10 +360,6 @@ export function EpicDetailPanel() {
   )
 }
 
-function EpicChatTab({ projectId: _projectId, epicId: _epicId }: { projectId: string; epicId: string }) {
-  return (
-    <div className="flex-1 flex items-center justify-center text-text-muted text-sm">
-      <p>Epic chat coming soon...</p>
-    </div>
-  )
+function EpicChatTab({ projectId, epicId }: { projectId: string; epicId: string }) {
+  return <EpicChat projectId={projectId} epicId={epicId} />
 }
