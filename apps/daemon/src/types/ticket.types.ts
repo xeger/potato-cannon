@@ -30,6 +30,7 @@ export interface UpdateTicketInput {
   phase?: TicketPhase;
   sessionId?: string;
   pendingPhase?: string | null;
+  reason?: string;
 }
 
 export type ArtifactType =
