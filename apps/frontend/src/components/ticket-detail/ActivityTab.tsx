@@ -315,13 +315,13 @@ export function ActivityTab({ projectId, ticketId, currentPhase: propPhase, hist
               value={input}
               onChange={(e) => setInput(e.target.value)}
               onKeyDown={handleKeyDown}
-              placeholder="Type your response..."
+              placeholder={isAgentActive ? "Type your response..." : "No agent is running for this phase"}
               className="min-h-[44px] max-h-[120px] resize-none"
               disabled={!isAgentActive || isSubmitting}
             />
             <Button
               onClick={() => handleSend(input)}
-              disabled={!input.trim() || isSubmitting}
+              disabled={!isAgentActive || !input.trim() || isSubmitting}
               size="icon"
               className="shrink-0 self-end"
             >
