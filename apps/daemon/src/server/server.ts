@@ -640,7 +640,7 @@ export async function main(): Promise<void> {
   registerRalphRoutes(app);
   registerArtifactChatRoutes(app, sessionService, getProjects);
   registerFolderRoutes(app);
-  registerEpicRoutes(app);
+  registerEpicRoutes(app, sessionService, () => projects);
 
   // SPA catch-all route - fallback to index.html for SPA routing
   if (frontendDist) {
