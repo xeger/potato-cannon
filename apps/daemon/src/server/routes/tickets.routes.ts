@@ -69,11 +69,12 @@ export function registerTicketRoutes(
   app.post("/api/tickets/:project", async (req: Request, res: Response) => {
     try {
       const projectId = decodeURIComponent(req.params.project);
-      const { title, description, brainstormId, ticketNumber } = req.body as {
+      const { title, description, brainstormId, ticketNumber, epicId } = req.body as {
         title?: string;
         description?: string;
         brainstormId?: string;
         ticketNumber?: string;
+        epicId?: string;
       };
 
       if (!title) {
@@ -81,7 +82,20 @@ export function registerTicketRoutes(
         return;
       }
 
-      const ticket = await createTicket(projectId, { title, description, ticketNumber });
+      if (epicId) {
+        const { getEpicById: getEpic } = await import("../../stores/epic.store.js");
+        const epic = getEpic(epicId);
+        if (!epic) {
+          res.status(400).json({ error: "Epic not found" });
+          return;
+        }
+        if (epic.projectId !== projectId) {
+          res.status(400).json({ error: "Epic belongs to a different project" });
+          return;
+        }
+      }
+
+      const ticket = await createTicket(projectId, { title, description, ticketNumber, epicId });
       eventBus.emit("ticket:created", { projectId, ticket });
 
       // Link brainstorm to created ticket
