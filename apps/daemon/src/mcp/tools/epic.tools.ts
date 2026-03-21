@@ -2,6 +2,7 @@ import type { ToolDefinition, McpContext, McpToolResult } from "../../types/mcp.
 import {
   getEpicByIdWithTickets,
   getEpicByProjectAndNumber,
+  createEpic,
 } from "../../stores/epic.store.js";
 import { getDatabase } from "../../stores/db.js";
 import { getProjectPrefixFromDb } from "../../stores/utils.js";
@@ -77,6 +78,25 @@ export const epicTools: ToolDefinition[] = [
       required: ["identifier"],
     },
   },
+  {
+    name: "create_epic",
+    description:
+      "Create a new epic to group related tickets. Returns the created epic with its identifier. After creating, use create_ticket with the epicId to add tickets to this epic.",
+    inputSchema: {
+      type: "object",
+      properties: {
+        title: {
+          type: "string",
+          description: "Title for the epic",
+        },
+        description: {
+          type: "string",
+          description: "Description providing shared context for all tickets in this epic",
+        },
+      },
+      required: ["title"],
+    },
+  },
 ];
 
 export const epicHandlers: Record<
@@ -107,6 +127,26 @@ export const epicHandlers: Record<
 
     return {
       content: [{ type: "text", text: formatEpicResponse(epic) }],
+    };
+  },
+
+  create_epic: async (ctx, args) => {
+    const title = args.title as string;
+    if (!title) {
+      return {
+        content: [{ type: "text", text: "Error: title is required" }],
+        isError: true,
+      };
+    }
+
+    const description = args.description as string | undefined;
+    const epic = createEpic(ctx.projectId, title, description);
+
+    return {
+      content: [{
+        type: "text",
+        text: `Epic created: ${epic.identifier} — ${epic.title}\nID: ${epic.id}\n\nUse this epicId when creating tickets: ${epic.id}`,
+      }],
     };
   },
 };
