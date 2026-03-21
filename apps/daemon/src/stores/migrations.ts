@@ -504,9 +504,14 @@ function migrateV11(db: Database.Database): void {
       project_id  TEXT PRIMARY KEY REFERENCES projects(id) ON DELETE CASCADE,
       next_number INTEGER NOT NULL DEFAULT 1
     );
-
-    ALTER TABLE tickets ADD COLUMN epic_id TEXT REFERENCES epics(id) ON DELETE SET NULL;
   `);
+
+  // ALTER TABLE is not idempotent — check if column exists first
+  const ticketColumns = db.pragma("table_info(tickets)") as { name: string }[];
+  const hasEpicId = ticketColumns.some((col) => col.name === "epic_id");
+  if (!hasEpicId) {
+    db.exec(`ALTER TABLE tickets ADD COLUMN epic_id TEXT REFERENCES epics(id) ON DELETE SET NULL`);
+  }
 
   // Partial index — only index non-null epic_id values
   db.exec(`CREATE INDEX IF NOT EXISTS idx_tickets_epic ON tickets(epic_id) WHERE epic_id IS NOT NULL`);
