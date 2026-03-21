@@ -493,13 +493,23 @@ function migrateV11(db: Database.Database): void {
       epic_number INTEGER NOT NULL,
       title       TEXT NOT NULL,
       description TEXT,
+      conversation_id TEXT,
       created_at  TEXT NOT NULL,
       updated_at  TEXT NOT NULL,
       UNIQUE(project_id, epic_number)
     );
 
     CREATE INDEX IF NOT EXISTS idx_epics_project ON epics(project_id);
+  `);
 
+  // Backfill conversation_id if table already existed without it
+  const epicColumns = db.pragma("table_info(epics)") as { name: string }[];
+  const hasConversationId = epicColumns.some((col) => col.name === "conversation_id");
+  if (!hasConversationId) {
+    db.exec(`ALTER TABLE epics ADD COLUMN conversation_id TEXT`);
+  }
+
+  db.exec(`
     CREATE TABLE IF NOT EXISTS epic_counters (
       project_id  TEXT PRIMARY KEY REFERENCES projects(id) ON DELETE CASCADE,
       next_number INTEGER NOT NULL DEFAULT 1
