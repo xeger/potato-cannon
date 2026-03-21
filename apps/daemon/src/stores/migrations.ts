@@ -1,6 +1,6 @@
 import type Database from "better-sqlite3";
 
-const CURRENT_SCHEMA_VERSION = 10;
+const CURRENT_SCHEMA_VERSION = 11;
 
 /**
  * Run database migrations.
@@ -47,6 +47,10 @@ export function runMigrations(db: Database.Database): void {
 
   if (version < 10) {
     migrateV10(db);
+  }
+
+  if (version < 11) {
+    migrateV11(db);
   }
 
   db.pragma(`user_version = ${CURRENT_SCHEMA_VERSION}`);
@@ -476,4 +480,34 @@ function migrateV10(db: Database.Database): void {
       PRIMARY KEY (project_id, context_id)
     );
   `);
+}
+
+/**
+ * V11: Epics table, epic_counters, and epic_id FK on tickets
+ */
+function migrateV11(db: Database.Database): void {
+  db.exec(`
+    CREATE TABLE IF NOT EXISTS epics (
+      id          TEXT PRIMARY KEY,
+      project_id  TEXT NOT NULL REFERENCES projects(id) ON DELETE CASCADE,
+      epic_number INTEGER NOT NULL,
+      title       TEXT NOT NULL,
+      description TEXT,
+      created_at  TEXT NOT NULL,
+      updated_at  TEXT NOT NULL,
+      UNIQUE(project_id, epic_number)
+    );
+
+    CREATE INDEX IF NOT EXISTS idx_epics_project ON epics(project_id);
+
+    CREATE TABLE IF NOT EXISTS epic_counters (
+      project_id  TEXT PRIMARY KEY REFERENCES projects(id) ON DELETE CASCADE,
+      next_number INTEGER NOT NULL DEFAULT 1
+    );
+
+    ALTER TABLE tickets ADD COLUMN epic_id TEXT REFERENCES epics(id) ON DELETE SET NULL;
+  `);
+
+  // Partial index — only index non-null epic_id values
+  db.exec(`CREATE INDEX IF NOT EXISTS idx_tickets_epic ON tickets(epic_id) WHERE epic_id IS NOT NULL`);
 }
