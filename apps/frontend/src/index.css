@@ -1023,23 +1023,26 @@ button, a, [role="button"] {
   }
 }
 
-/* Epic Detail Panel — same transition pattern as ticket-detail-panel */
+/* Epic Detail Panel — overlays content from the right */
 .epic-detail-panel {
-  height: 100%;
+  position: absolute;
+  top: 0;
+  right: 0;
+  bottom: 0;
+  width: 600px;
+  max-width: 40vw;
   border-left: 1px solid var(--color-border);
   background: var(--color-sidebar);
-  flex-shrink: 0;
-  overflow: hidden;
-  transition: width 200ms ease-in-out;
+  z-index: 20;
+  transform: translateX(100%);
+  visibility: hidden;
+  transition: transform 200ms ease-in-out, visibility 0s 200ms;
 }
 
 .epic-detail-panel[data-open="true"] {
-  width: 600px;
-  max-width: 40vw;
-}
-
-.epic-detail-panel[data-open="false"] {
-  width: 0;
+  transform: translateX(0);
+  visibility: visible;
+  transition: transform 200ms ease-in-out, visibility 0s 0s;
 }
 
 @media (max-width: 640px) {
@@ -1048,12 +1051,10 @@ button, a, [role="button"] {
   }
 
   .epic-detail-panel {
-    position: absolute;
     top: 12px;
     left: 12px;
     right: 12px;
     bottom: calc(72px + env(safe-area-inset-bottom, 0px));
-    height: auto;
     width: auto !important;
     max-width: none !important;
     border: none;
@@ -1061,7 +1062,6 @@ button, a, [role="button"] {
     background: var(--color-bg-secondary);
     z-index: 30;
     transform: translateX(calc(100% + 24px));
-    visibility: hidden;
     transition: transform 300ms ease-out, visibility 0s 300ms;
   }
 
