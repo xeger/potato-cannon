@@ -1,6 +1,6 @@
 import type Database from "better-sqlite3";
 
-const CURRENT_SCHEMA_VERSION = 11;
+const CURRENT_SCHEMA_VERSION = 12;
 
 /**
  * Run database migrations.
@@ -51,6 +51,10 @@ export function runMigrations(db: Database.Database): void {
 
   if (version < 11) {
     migrateV11(db);
+  }
+
+  if (version < 12) {
+    migrateV12(db);
   }
 
   db.pragma(`user_version = ${CURRENT_SCHEMA_VERSION}`);
@@ -525,4 +529,15 @@ function migrateV11(db: Database.Database): void {
 
   // Partial index — only index non-null epic_id values
   db.exec(`CREATE INDEX IF NOT EXISTS idx_tickets_epic ON tickets(epic_id) WHERE epic_id IS NOT NULL`);
+}
+
+/**
+ * V12: Add conversation_id to epics table (for existing V11 databases)
+ */
+function migrateV12(db: Database.Database): void {
+  const epicColumns = db.pragma("table_info(epics)") as { name: string }[];
+  const hasConversationId = epicColumns.some((col) => col.name === "conversation_id");
+  if (!hasConversationId) {
+    db.exec(`ALTER TABLE epics ADD COLUMN conversation_id TEXT`);
+  }
 }
