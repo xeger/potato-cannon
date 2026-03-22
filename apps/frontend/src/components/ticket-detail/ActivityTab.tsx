@@ -6,6 +6,7 @@ import { api } from '@/api/client'
 import { Button } from '@/components/ui/button'
 import { Textarea } from '@/components/ui/textarea'
 import { cn, timeAgo, formatToolActivity } from '@/lib/utils'
+import { useAppStore } from '@/stores/appStore'
 import { Linkify } from '@/components/ui/linkify'
 import { ArtifactViewerFull } from './ArtifactViewerFull'
 import { CollapsibleTaskPanel } from './CollapsibleTaskPanel'
@@ -40,6 +41,9 @@ export function ActivityTab({ projectId, ticketId, currentPhase: propPhase, hist
   const [selectedArtifact, setSelectedArtifact] = useState<Artifact | null>(null)
   const [currentActivity, setCurrentActivity] = useState<string | null>(null)
   const [currentPhase, setCurrentPhase] = useState<string | null>(null)
+  const isProcessing = useAppStore((s) => s.isTicketProcessing(projectId, ticketId))
+  const isPending = useAppStore((s) => s.isTicketPending(projectId, ticketId))
+  const isAgentActive = isProcessing || isPending
 
   const queryClient = useQueryClient()
 
@@ -113,8 +117,9 @@ export function ActivityTab({ projectId, ticketId, currentPhase: propPhase, hist
     // Only process events for this ticket
     if (data.ticketId !== ticketId) return
 
-    // Clear activity when session ends
+    // Clear activity and waiting state when session ends
     setCurrentActivity(null)
+    setIsWaitingForResponse(false)
   }, [ticketId]))
 
   const messagesEndRef = useRef<HTMLDivElement>(null)
@@ -278,7 +283,7 @@ export function ActivityTab({ projectId, ticketId, currentPhase: propPhase, hist
         </div>
 
         {/* Option buttons */}
-        {pendingOptions.length > 0 && (
+        {isAgentActive && pendingOptions.length > 0 && (
           <div className="pb-2 px-7 flex flex-wrap gap-2 shrink-0">
             {pendingOptions.map((option, index) => (
               <Button
@@ -311,13 +316,13 @@ export function ActivityTab({ projectId, ticketId, currentPhase: propPhase, hist
               value={input}
               onChange={(e) => setInput(e.target.value)}
               onKeyDown={handleKeyDown}
-              placeholder="Type your response..."
+              placeholder={isAgentActive ? "Type your response..." : "No agent is running for this phase"}
               className="min-h-[44px] max-h-[120px] resize-none"
-              disabled={isSubmitting}
+              disabled={!isAgentActive || isSubmitting}
             />
             <Button
               onClick={() => handleSend(input)}
-              disabled={!input.trim() || isSubmitting}
+              disabled={!isAgentActive || !input.trim() || isSubmitting}
               size="icon"
               className="shrink-0 self-end"
             >
