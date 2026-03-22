@@ -271,7 +271,7 @@ export function getPendingQuestionsByProject(): Map<string, string[]> {
   const rows = db.prepare(`
     SELECT project_id, context_id
     FROM pending_questions
-    WHERE context_type = 'ticket'
+    WHERE context_type = 'ticket' AND answer IS NULL
   `).all() as Array<{ project_id: string; context_id: string }>;
 
   const result = new Map<string, string[]>();

@@ -21,7 +21,7 @@ import {
   appendConversation,
 } from "../../stores/ticket.store.js";
 import { DEFAULT_PHASES } from "../../types/index.js";
-import { readQuestion, writeResponse } from "../../stores/chat.store.js";
+import { readQuestion, writeResponse, clearQuestion } from "../../stores/chat.store.js";
 import { getActiveSessionForTicket } from "../../stores/session.store.js";
 import { getMessages } from "../../stores/conversation.store.js";
 import { updateBrainstorm } from "../../stores/brainstorm.store.js";
@@ -528,7 +528,8 @@ export function registerTicketRoutes(
               return;
             } catch (err) {
               console.error(`[input] Failed to resume suspended ticket: ${(err as Error).message}`);
-              // Fall through — response is already written, blocking session may pick it up
+              // Clean up the stale pending question so the UI doesn't stay enabled
+              clearQuestion(projectId, ticketId);
             }
           }
         }
