@@ -70,6 +70,9 @@ export function useSSE() {
         eventSource.addEventListener(event, () => {
           queryClient.refetchQueries({ queryKey: ['tickets'] })
           queryClient.refetchQueries({ queryKey: ['artifacts'] })
+          // Epics derive status/counts from tickets, so refresh them too
+          queryClient.refetchQueries({ queryKey: ['epics'] })
+          queryClient.refetchQueries({ queryKey: ['epic'] })
         })
       })
 
@@ -104,6 +107,7 @@ export function useSSE() {
       epicEvents.forEach(event => {
         eventSource.addEventListener(event, () => {
           queryClient.refetchQueries({ queryKey: ['epics'] })
+          queryClient.refetchQueries({ queryKey: ['epic'] })
         })
       })
 
