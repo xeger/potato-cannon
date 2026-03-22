@@ -86,6 +86,11 @@ export const ticketTools: ToolDefinition[] = [
           description:
             "Optional custom ticket number (e.g. from JIRA). Replaces auto-generated ID. Only letters, numbers, hyphens, underscores allowed (max 20 chars).",
         },
+        epicId: {
+          type: "string",
+          description:
+            "Optional epic ID to assign this ticket to. Links the ticket to an existing epic.",
+        },
       },
       required: ["title"],
     },
@@ -248,10 +253,12 @@ async function createTicket(
   description?: string,
   brainstormId?: string,
   ticketNumber?: string,
+  epicId?: string,
 ): Promise<unknown> {
   const body: Record<string, string> = { title, description: description || "" };
   if (brainstormId) body.brainstormId = brainstormId;
   if (ticketNumber) body.ticketNumber = ticketNumber;
+  if (epicId) body.epicId = epicId;
 
   const response = await fetch(
     `${ctx.daemonUrl}/api/tickets/${encodeURIComponent(ctx.projectId)}`,
@@ -311,6 +318,7 @@ export const ticketHandlers: Record<
       args.description as string | undefined,
       args.brainstormId as string | undefined,
       args.ticketNumber as string | undefined,
+      args.epicId as string | undefined,
     )) as { id: string; title: string };
     return {
       content: [
