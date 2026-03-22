@@ -2,8 +2,9 @@ import { createFileRoute } from '@tanstack/react-router'
 import { useProjects, useEpics } from '@/hooks/queries'
 import { useAppStore } from '@/stores/appStore'
 import { EpicCard } from '@/components/epic/EpicCard'
+import { BrainstormColumn } from '@/components/board/BrainstormColumn'
 import { Button } from '@/components/ui/button'
-import { Plus, MessageSquarePlus } from 'lucide-react'
+import { Plus } from 'lucide-react'
 
 export const Route = createFileRoute('/projects/$projectId/epics')({
   component: EpicsPage,
@@ -16,13 +17,22 @@ function EpicsPage() {
 
   if (!project) return null
 
-  return <EpicList projectId={project.id} />
+  return (
+    <div className="h-full flex">
+      {/* Desktop only: fixed brainstorm column */}
+      <div className="hidden sm:block shrink-0 h-full overflow-y-auto border-r border-border p-4 pr-2">
+        <BrainstormColumn projectId={project.id} />
+      </div>
+      <div className="flex-1 min-w-0 overflow-y-auto">
+        <EpicList projectId={project.id} />
+      </div>
+    </div>
+  )
 }
 
 function EpicList({ projectId }: { projectId: string }) {
   const { data: epics, isLoading } = useEpics(projectId)
   const openCreateEpicModal = useAppStore((s) => s.openCreateEpicModal)
-  const openNewBrainstormSheet = useAppStore((s) => s.openNewBrainstormSheet)
   const openEpicSheet = useAppStore((s) => s.openEpicSheet)
   const epicSheetEpicId = useAppStore((s) => s.epicSheetEpicId)
 
@@ -38,23 +48,13 @@ function EpicList({ projectId }: { projectId: string }) {
     <div className="p-6 max-w-4xl mx-auto">
       <div className="flex items-center justify-between mb-6">
         <h1 className="text-lg font-semibold text-text-primary">Epics</h1>
-        <div className="flex items-center gap-2">
-          <Button
-            size="sm"
-            variant="outline"
-            onClick={() => openNewBrainstormSheet(projectId)}
-          >
-            <MessageSquarePlus className="h-4 w-4 mr-1" />
-            Brainstorm
-          </Button>
-          <Button
-            size="sm"
-            onClick={() => openCreateEpicModal(projectId)}
-          >
-            <Plus className="h-4 w-4 mr-1" />
-            Create Epic
-          </Button>
-        </div>
+        <Button
+          size="sm"
+          onClick={() => openCreateEpicModal(projectId)}
+        >
+          <Plus className="h-4 w-4 mr-1" />
+          Create Epic
+        </Button>
       </div>
 
       {!epics || epics.length === 0 ? (
