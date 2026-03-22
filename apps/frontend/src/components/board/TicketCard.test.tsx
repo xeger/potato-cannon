@@ -258,6 +258,7 @@ describe('TicketCard - Processing + Selected State', () => {
 describe('TicketCard - Block Reason', () => {
   beforeEach(() => {
     vi.clearAllMocks()
+    mockIsTicketPending.mockReturnValue(false)
   })
 
   afterEach(() => {
