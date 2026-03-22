@@ -2,6 +2,12 @@
 
 All notable changes to the product-development workflow.
 
+## [1.9.0] - 2026-03-21
+
+### Improved
+
+- **Refinement and architect agents pull epic context** - When a ticket belongs to an epic, refinement and architect agents now call `get_epic` to understand the broader initiative before starting their work. Build agents are unaffected.
+
 ## [1.8.0] - 2026-03-21
 
 ### New
