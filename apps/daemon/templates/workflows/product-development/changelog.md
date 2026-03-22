@@ -2,6 +2,14 @@
 
 All notable changes to the product-development workflow.
 
+## [1.8.0] - 2026-03-21
+
+### New
+
+- **Epic chat agent** - New `epic-chat.md` agent enables persistent conversations within epics. Chat with an epic to refine its scope, create child tickets, or review progress.
+- **`create_epic` MCP tool** - Brainstorm agents can now create epics directly, enabling end-to-end epic planning from brainstorm sessions.
+- **`epicId` on `create_ticket`** - Agents can link newly created tickets to epics by passing the `epicId` parameter.
+
 ## [1.7.0] - 2026-03-13
 
 ### Improved

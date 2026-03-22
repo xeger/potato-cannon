@@ -2,7 +2,7 @@
   "$schema": "./workflow.schema.json",
   "name": "product-development",
   "description": "Standard product development workflow with refinement, architecture, and build phases",
-  "version": "1.7.0",
+  "version": "1.8.0",
   "phases": [
     {
       "id": "Refinement",
