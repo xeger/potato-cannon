@@ -333,9 +333,11 @@ export function ActivityTab({ projectId, ticketId, currentPhase: propPhase, hist
               )}
             </Button>
           </div>
-          <p className="text-xs text-text-muted mt-2 px-4">
-            Press Enter to send, Shift+Enter for new line
-          </p>
+          {isAgentActive && (
+            <p className="text-xs text-text-muted mt-2 px-4">
+              Press Enter to send, Shift+Enter for new line
+            </p>
+          )}
         </div>
       </div>
 
