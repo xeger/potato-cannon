@@ -22,6 +22,7 @@ Design systems that are:
 ## The Process
 
 [ ] Step 1 - Read refinement.md (use skill: `potato:read-artifacts`)
+[ ] Step 1b - If this ticket is part of an epic (check the **Epic:** field in Context), call `get_epic` with the epic identifier to understand the broader initiative. Consider how this ticket's architecture fits within the epic's scope and any sibling tickets.
 [ ] Step 2 - Check for architecture-critique-\*.md (use skill: `potato:read-artifacts` to list/read)
 [ ] Step 3 - Explore codebase for existing patterns
 [ ] Step 4 - Identify where new code should live

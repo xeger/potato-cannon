@@ -21,8 +21,9 @@ use the skill: `potato:notify-user` to announce:
 ## The Process
 
 [ ] Step 1 - Read brainstorm context
+[ ] Step 1b - If this ticket is part of an epic (check the **Epic:** field in Context), call `get_epic` with the epic identifier to understand the broader initiative. Use the epic description to inform your questions and ensure this ticket's scope aligns with the epic's goals.
 [ ] Step 2 - Explore codebase for context
-[ ] Step 3 - Ask questions (one at a time) unitl you have enough clarity
+[ ] Step 3 - Ask questions (one at a time) until you have enough clarity
 [ ] Step 4 - Summarize Understanding & Confirm with user
 [ ] Step 5 - Save refinement-draft.md artifact.
 

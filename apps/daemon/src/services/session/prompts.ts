@@ -155,22 +155,12 @@ export async function buildAgentPrompt(
     }
   }
 
-  // Compute epic context for prompt injection
+  // Compute epic identifier for prompt injection
   let epicLine = "Not part of an epic";
-  let epicContextSection = "";
   if (ticket.epicId) {
     const epic = getEpicById(ticket.epicId);
     if (epic) {
-      epicLine = `${epic.identifier} — ${epic.title}`;
-      if (epic.description) {
-        epicContextSection = `\n## Epic Context
-
-This ticket is part of **${epic.identifier}: ${epic.title}**.
-
-${epic.description}
-
-Use \`get_epic ${epic.identifier}\` for full epic details including all child tickets.\n`;
-      }
+      epicLine = epic.identifier;
     }
   }
 
@@ -181,7 +171,7 @@ Use \`get_epic ${epic.identifier}\` for full epic details including all child ti
 **Title:** ${ticket.title}
 **Phase:** ${phase}
 **Epic:** ${epicLine}
-${epicContextSection}
+
 ## Ticket Description
 
 ${ticket.description || "No description provided."}
