@@ -20,7 +20,7 @@ function EpicsPage() {
   return (
     <div className="h-full flex">
       {/* Desktop only: fixed brainstorm column */}
-      <div className="hidden sm:block shrink-0 h-full overflow-y-auto border-r border-border p-4 pr-2">
+      <div className="hidden sm:block shrink-0 h-full overflow-y-auto p-4 pr-2">
         <BrainstormColumn projectId={project.id} />
       </div>
       <div className="flex-1 min-w-0 overflow-y-auto">
