@@ -31,30 +31,46 @@ export async function ensureWorktree(
   await fs.mkdir(worktreesDir, { recursive: true });
 
   try {
-    // Get the default branch (main or master)
-    let baseBranch: string;
+    // Fetch origin so tracking refs are current
     try {
-      baseBranch = execSync("git symbolic-ref refs/remotes/origin/HEAD", {
+      execSync("git fetch origin", {
         cwd: projectPath,
         encoding: "utf-8",
+        stdio: "pipe",
+      });
+    } catch (fetchError) {
+      console.warn(`[worktree] git fetch origin failed: ${(fetchError as Error).message}`);
+    }
+
+    // Get the default branch name from origin
+    let baseBranchName: string;
+    try {
+      baseBranchName = execSync("git symbolic-ref refs/remotes/origin/HEAD", {
+        cwd: projectPath,
+        encoding: "utf-8",
+        stdio: "pipe",
       })
         .trim()
         .replace("refs/remotes/origin/", "");
     } catch {
       // Fallback: try main, then master
       try {
-        execSync("git rev-parse --verify main", {
+        execSync("git rev-parse --verify origin/main", {
           cwd: projectPath,
           encoding: "utf-8",
+          stdio: "pipe",
         });
-        baseBranch = "main";
+        baseBranchName = "main";
       } catch {
-        baseBranch = "master";
+        baseBranchName = "master";
       }
     }
 
+    // Branch from the remote tracking ref, not the local branch
+    const startPoint = `origin/${baseBranchName}`;
+
     console.log(
-      `Creating worktree for ticket ${ticketId} from ${baseBranch}...`,
+      `Creating worktree for ticket ${ticketId} from ${startPoint}...`,
     );
 
     // Check if branch already exists
@@ -63,6 +79,7 @@ export async function ensureWorktree(
       execSync(`git rev-parse --verify ${branchName}`, {
         cwd: projectPath,
         encoding: "utf-8",
+        stdio: "pipe",
       });
       branchExists = true;
     } catch {
@@ -76,7 +93,7 @@ export async function ensureWorktree(
       });
     } else {
       execSync(
-        `git worktree add -b ${branchName} "${worktreePath}" ${baseBranch}`,
+        `git worktree add -b ${branchName} "${worktreePath}" ${startPoint}`,
         {
           cwd: projectPath,
           encoding: "utf-8",
