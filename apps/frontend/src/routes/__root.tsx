@@ -9,6 +9,8 @@ import { BrainstormDetailPanel } from '@/components/brainstorm/BrainstormDetailP
 import { AddTicketModal } from '@/components/board/AddTicketModal'
 import { AddProjectModal } from '@/components/layout/AddProjectModal'
 import { CreateFolderModal } from '@/components/layout/CreateFolderModal'
+import { EpicDetailPanel } from '@/components/epic/EpicDetailPanel'
+import { CreateEpicModal } from '@/components/epic/CreateEpicModal'
 import { SidebarProvider, SidebarInset, SidebarTrigger } from '@/components/ui/sidebar'
 import { useProjects } from '@/hooks/queries'
 import { useAppStore } from '@/stores/appStore'
@@ -55,6 +57,7 @@ function RootLayout() {
   const setCurrentProjectId = useAppStore((s) => s.setCurrentProjectId)
   const ticketSheetOpen = useAppStore((s) => s.ticketSheetOpen)
   const brainstormSheetOpen = useAppStore((s) => s.brainstormSheetOpen)
+  const epicSheetOpen = useAppStore((s) => s.epicSheetOpen)
 
   // Look up project by slug from URL
   const currentProject = projects?.find((p) => p.slug === projectSlug)
@@ -99,7 +102,7 @@ function RootLayout() {
             <ViewTabs />
           </header>
         )}
-        <div className="board-container flex-1 flex overflow-hidden min-h-0" data-detail-open={ticketSheetOpen} data-brainstorm-open={brainstormSheetOpen}>
+        <div className="board-container flex-1 flex overflow-hidden min-h-0" data-detail-open={ticketSheetOpen} data-brainstorm-open={brainstormSheetOpen} data-epic-open={epicSheetOpen}>
           <main className="flex-1 min-w-0 overflow-hidden relative bg-bg-primary pb-14 sm:pb-0">
             {!isLoading && !hasProjects ? (
               <EmptyProjects />
@@ -137,12 +140,14 @@ function RootLayout() {
           </main>
           <TicketDetailPanel />
           <BrainstormDetailPanel />
+          <EpicDetailPanel />
         </div>
         {hasProjects && <MobileBottomBar />}
       </SidebarInset>
       <AddTicketModal />
       <AddProjectModal />
       <CreateFolderModal />
+      <CreateEpicModal />
     </SidebarProvider>
     </>
   )

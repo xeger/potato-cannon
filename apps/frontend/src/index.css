@@ -1023,6 +1023,55 @@ button, a, [role="button"] {
   }
 }
 
+/* Epic Detail Panel — overlays content from the right */
+.epic-detail-panel {
+  position: absolute;
+  top: 0;
+  right: 0;
+  bottom: 0;
+  width: 600px;
+  max-width: 40vw;
+  border-left: 1px solid var(--color-border);
+  background: var(--color-sidebar);
+  z-index: 20;
+  transform: translateX(100%);
+  visibility: hidden;
+  transition: transform 200ms ease-in-out, visibility 0s 200ms;
+}
+
+.epic-detail-panel[data-open="true"] {
+  transform: translateX(0);
+  visibility: visible;
+  transition: transform 200ms ease-in-out, visibility 0s 0s;
+}
+
+@media (max-width: 640px) {
+  .board-container[data-epic-open="true"] > main {
+    visibility: hidden;
+  }
+
+  .epic-detail-panel {
+    top: 12px;
+    left: 12px;
+    right: 12px;
+    bottom: calc(72px + env(safe-area-inset-bottom, 0px));
+    width: auto !important;
+    max-width: none !important;
+    border: none;
+    border-radius: var(--radius-lg);
+    background: var(--color-bg-secondary);
+    z-index: 30;
+    transform: translateX(calc(100% + 24px));
+    transition: transform 300ms ease-out, visibility 0s 300ms;
+  }
+
+  .epic-detail-panel[data-open="true"] {
+    transform: translateX(0);
+    visibility: visible;
+    transition: transform 300ms ease-out, visibility 0s 0s;
+  }
+}
+
 /* ================================================
    SWIMLANE FLIP CARD ANIMATION
    3D card flip for swimlane configuration

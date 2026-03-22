@@ -30,7 +30,16 @@ function getThreadsPath(context: ChatContext): string {
     );
   }
 
-  throw new Error("ChatContext must have either ticketId or brainstormId");
+  if (context.epicId) {
+    return path.join(
+      BRAINSTORMS_DIR,
+      safeProject,
+      `epic_${context.epicId}`,
+      "chat-threads.json",
+    );
+  }
+
+  throw new Error("ChatContext must have either ticketId, brainstormId, or epicId");
 }
 
 export async function loadThreads(

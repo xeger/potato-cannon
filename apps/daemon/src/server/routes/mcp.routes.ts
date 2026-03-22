@@ -20,6 +20,7 @@ export function registerMcpRoutes(app: Express): void {
           projectId: string;
           ticketId?: string;
           brainstormId?: string;
+          epicId?: string;
         };
       };
 
@@ -29,7 +30,7 @@ export function registerMcpRoutes(app: Express): void {
       }
 
       // Log the MCP tool call
-      const contextId = context?.ticketId || context?.brainstormId || "unknown";
+      const contextId = context?.ticketId || context?.brainstormId || context?.epicId || "unknown";
       console.log(`[MCP] ${tool} called for ${contextId}`);
 
       // Also log to ticket-specific log file
@@ -58,6 +59,7 @@ export function registerMcpRoutes(app: Express): void {
         projectId: context.projectId,
         ticketId: context.ticketId || "",
         brainstormId: context.brainstormId || "",
+        epicId: context.epicId || "",
         daemonUrl: `http://localhost:${port}`,
       };
 

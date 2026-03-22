@@ -14,12 +14,17 @@ vi.mock('@tanstack/react-query', () => ({
   }),
 }))
 
+vi.mock('@/hooks/queries', () => ({
+  useEpics: () => ({ data: undefined }),
+}))
+
 vi.mock('@/stores/appStore', () => ({
   useAppStore: (selector: (s: Record<string, unknown>) => unknown) =>
     selector({
       currentProjectId: 'test-project',
       addTicketModalOpen: true,
       closeAddTicketModal: mockCloseModal,
+      openCreateEpicModal: vi.fn(),
     }),
 }))
 
@@ -79,7 +84,7 @@ describe('AddTicketModal', () => {
     await user.click(submitButton)
 
     await waitFor(() => {
-      expect(mockCreateTicket).toHaveBeenCalledWith('test-project', 'My Ticket', undefined, 'JIRA-456')
+      expect(mockCreateTicket).toHaveBeenCalledWith('test-project', 'My Ticket', undefined, 'JIRA-456', undefined)
     })
   })
 
@@ -94,7 +99,7 @@ describe('AddTicketModal', () => {
     await user.click(submitButton)
 
     await waitFor(() => {
-      expect(mockCreateTicket).toHaveBeenCalledWith('test-project', 'Normal Ticket', undefined, undefined)
+      expect(mockCreateTicket).toHaveBeenCalledWith('test-project', 'Normal Ticket', undefined, undefined, undefined)
     })
   })
 

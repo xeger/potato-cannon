@@ -23,6 +23,7 @@ import type {
 import type { OrchestrationState } from "../types/orchestration.types.js";
 
 import { TERMINAL_PHASES } from "../types/ticket.types.js";
+import { getProjectPrefixFromDb } from "./utils.js";
 
 // =============================================================================
 // Types
@@ -53,6 +54,7 @@ interface TicketRow {
   conversation_id: string | null;
   worker_state: string | null;
   pending_phase: string | null;
+  epic_id: string | null;
 }
 
 interface HistoryRow {
@@ -76,17 +78,6 @@ function getProjectTicketsDir(projectId: string): string {
 
 function getTicketDir(projectId: string, ticketId: string): string {
   return path.join(getProjectTicketsDir(projectId), ticketId);
-}
-
-function getProjectPrefixFromDb(db: Database.Database, projectId: string): string {
-  const row = db.prepare("SELECT display_name, slug FROM projects WHERE id = ?").get(projectId) as { display_name: string; slug: string } | undefined;
-  const name = row?.display_name || row?.slug || "TKT";
-  return (
-    name
-      .replace(/[^a-zA-Z0-9]/g, "")
-      .substring(0, 3)
-      .toUpperCase() || "TKT"
-  );
 }
 
 // =============================================================================
@@ -241,10 +232,10 @@ export class TicketStore {
     // Insert ticket with conversation_id and description
     this.db
       .prepare(
-        `INSERT INTO tickets (id, project_id, title, description, phase, created_at, updated_at, archived, conversation_id)
-         VALUES (?, ?, ?, ?, ?, ?, ?, 0, ?)`
+        `INSERT INTO tickets (id, project_id, title, description, phase, created_at, updated_at, archived, conversation_id, epic_id)
+         VALUES (?, ?, ?, ?, ?, ?, ?, 0, ?, ?)`
       )
-      .run(id, projectId, input.title, description, initialPhase, now, now, conversation.id);
+      .run(id, projectId, input.title, description, initialPhase, now, now, conversation.id, input.epicId || null);
 
     // Insert initial history entry
     const historyId = randomUUID();
@@ -471,6 +462,7 @@ export class TicketStore {
       archivedAt: row.archived_at || undefined,
       conversationId: row.conversation_id || undefined,
       pendingPhase: row.pending_phase || undefined,
+      epicId: row.epic_id || undefined,
     };
   }
 

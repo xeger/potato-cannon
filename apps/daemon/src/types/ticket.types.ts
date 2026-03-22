@@ -22,6 +22,7 @@ export interface CreateTicketInput {
   title: string;
   description?: string;
   ticketNumber?: string;
+  epicId?: string;
 }
 
 export interface UpdateTicketInput {

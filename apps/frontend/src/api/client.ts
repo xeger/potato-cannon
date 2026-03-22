@@ -20,7 +20,9 @@ import type {
   ArtifactChatStartResponse,
   ArtifactChatPendingResponse,
   ArchiveResult,
-  WorkerTreeResponse
+  WorkerTreeResponse,
+  EpicWithCounts,
+  EpicWithTickets,
 } from '@potato-cannon/shared'
 
 const BASE_URL = ''
@@ -107,13 +109,14 @@ export const api = {
   getTicket: (projectId: string, ticketId: string) =>
     request<Ticket>(`/api/tickets/${encodeURIComponent(projectId)}/${ticketId}`),
 
-  createTicket: (projectId: string, title: string, description?: string, ticketNumber?: string) =>
+  createTicket: (projectId: string, title: string, description?: string, ticketNumber?: string, epicId?: string) =>
     request<Ticket>(`/api/tickets/${encodeURIComponent(projectId)}`, {
       method: 'POST',
       body: JSON.stringify({
         title,
         description,
         ...(ticketNumber ? { ticketNumber } : {}),
+        ...(epicId ? { epicId } : {}),
       })
     }),
 
@@ -446,5 +449,52 @@ export const api = {
     request<{ ok: true }>(
       `/api/projects/${encodeURIComponent(projectId)}/agents/${encodeURIComponent(agentType)}/override`,
       { method: 'DELETE' }
+    ),
+
+  // ============ Epics ============
+
+  getEpics: (projectId: string) =>
+    request<EpicWithCounts[]>(`/api/projects/${encodeURIComponent(projectId)}/epics`),
+
+  getEpic: (projectId: string, epicId: string) =>
+    request<EpicWithTickets>(`/api/projects/${encodeURIComponent(projectId)}/epics/${encodeURIComponent(epicId)}`),
+
+  createEpic: (projectId: string, title: string, description?: string) =>
+    request<EpicWithCounts>(`/api/projects/${encodeURIComponent(projectId)}/epics`, {
+      method: 'POST',
+      body: JSON.stringify({ title, description }),
+    }),
+
+  updateEpic: (projectId: string, epicId: string, updates: { title?: string; description?: string }) =>
+    request<EpicWithCounts>(`/api/projects/${encodeURIComponent(projectId)}/epics/${encodeURIComponent(epicId)}`, {
+      method: 'PUT',
+      body: JSON.stringify(updates),
+    }),
+
+  deleteEpic: (projectId: string, epicId: string) =>
+    request<{ success: true }>(`/api/projects/${encodeURIComponent(projectId)}/epics/${encodeURIComponent(epicId)}`, {
+      method: 'DELETE',
+    }),
+
+  assignTicketToEpic: (projectId: string, ticketId: string, epicId: string | null) =>
+    request<{ success: true }>(`/api/projects/${encodeURIComponent(projectId)}/tickets/${encodeURIComponent(ticketId)}/epic`, {
+      method: 'PUT',
+      body: JSON.stringify({ epicId }),
+    }),
+
+  // ============ Epic Chat ============
+
+  sendEpicChatMessage: (projectId: string, epicId: string, message: string) =>
+    request<{ ok: true; sessionId: string }>(
+      `/api/projects/${encodeURIComponent(projectId)}/epics/${encodeURIComponent(epicId)}/chat`,
+      {
+        method: 'POST',
+        body: JSON.stringify({ message }),
+      }
+    ),
+
+  getEpicChatMessages: (projectId: string, epicId: string) =>
+    request<{ messages: Array<{ id: string; type: string; text: string; timestamp: string; conversationId: string; options?: string[] }> }>(
+      `/api/projects/${encodeURIComponent(projectId)}/epics/${encodeURIComponent(epicId)}/chat/messages`
     ),
 }

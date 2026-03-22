@@ -27,9 +27,10 @@ export function BrainstormDetailPanel() {
   // Only show panel on board view and when viewing the same project
   const location = useLocation()
   const isOnBoardView = !!location.pathname.match(/^\/projects\/[^/]+\/board/)
+  const isOnEpicsView = !!location.pathname.match(/^\/projects\/[^/]+\/epics/)
   const isCorrectProject = currentProjectId === brainstormSheetProjectId
 
-  const isOpen = brainstormSheetOpen && isOnBoardView && isCorrectProject
+  const isOpen = brainstormSheetOpen && (isOnBoardView || isOnEpicsView) && isCorrectProject
 
   // Handle escape key to close panel
   useEffect(() => {

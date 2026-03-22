@@ -22,6 +22,10 @@ type SSEEventType =
   | 'log:entry'
   | 'processing:sync'
   | 'folder:updated'
+  | 'epic:created'
+  | 'epic:updated'
+  | 'epic:deleted'
+  | 'epic:message'
 
 interface SSEEventData {
   [key: string]: unknown
@@ -66,6 +70,9 @@ export function useSSE() {
         eventSource.addEventListener(event, () => {
           queryClient.refetchQueries({ queryKey: ['tickets'] })
           queryClient.refetchQueries({ queryKey: ['artifacts'] })
+          // Epics derive status/counts from tickets, so refresh them too
+          queryClient.refetchQueries({ queryKey: ['epics'] })
+          queryClient.refetchQueries({ queryKey: ['epic'] })
         })
       })
 
@@ -93,6 +100,25 @@ export function useSSE() {
       // Folder events - invalidate folders query
       eventSource.addEventListener('folder:updated', () => {
         queryClient.refetchQueries({ queryKey: ['folders'] })
+      })
+
+      // Epic events — invalidate epics queries
+      const epicEvents: SSEEventType[] = ['epic:created', 'epic:updated', 'epic:deleted']
+      epicEvents.forEach(event => {
+        eventSource.addEventListener(event, () => {
+          queryClient.refetchQueries({ queryKey: ['epics'] })
+          queryClient.refetchQueries({ queryKey: ['epic'] })
+        })
+      })
+
+      // Epic chat messages
+      eventSource.addEventListener('epic:message', (e) => {
+        try {
+          const data = JSON.parse((e as MessageEvent).data)
+          window.dispatchEvent(new CustomEvent('sse:epic-message', { detail: data }))
+        } catch (err) {
+          console.error('Failed to parse epic message:', err)
+        }
       })
 
       // Session events - invalidate sessions and tickets queries
@@ -283,6 +309,17 @@ export function useSessionEnded(callback: (data: SSEEventData) => void) {
     }
     window.addEventListener('sse:session-ended', handler as EventListener)
     return () => window.removeEventListener('sse:session-ended', handler as EventListener)
+  }, [callback])
+}
+
+// Hook for subscribing to epic messages
+export function useEpicMessage(callback: (data: SSEEventData) => void) {
+  useEffect(() => {
+    const handler = (e: CustomEvent<SSEEventData>) => {
+      callback(e.detail)
+    }
+    window.addEventListener('sse:epic-message', handler as EventListener)
+    return () => window.removeEventListener('sse:epic-message', handler as EventListener)
   }, [callback])
 }
 

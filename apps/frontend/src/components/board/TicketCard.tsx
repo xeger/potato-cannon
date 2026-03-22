@@ -5,7 +5,7 @@ import { Archive, Image, Clock } from 'lucide-react'
 import { toast } from 'sonner'
 import { cn, timeAgo } from '@/lib/utils'
 import { useAppStore } from '@/stores/appStore'
-import { useArchiveTicket } from '@/hooks/queries'
+import { useArchiveTicket, useEpics } from '@/hooks/queries'
 import { ListItemCard } from '@/components/ui/list-item-card'
 import { IconButton } from '@/components/ui/icon-button'
 import { ArchiveConfirmDialog, shouldShowArchiveWarning } from '@/components/ticket-detail/ArchiveConfirmDialog'
@@ -30,6 +30,8 @@ export function TicketCard({ ticket, projectId, swimlaneColor }: TicketCardProps
   const isArchiving = useAppStore((s) => s.isTicketArchiving(projectId, ticket.id))
   const ticketSheetTicketId = useAppStore((s) => s.ticketSheetTicketId)
   const isSelected = ticketSheetTicketId === ticket.id
+  const { data: epics } = useEpics(projectId)
+  const ticketEpic = epics?.find((e) => e.id === ticket.epicId)
   const [archiveConfirmOpen, setArchiveConfirmOpen] = useState(false)
   const archiveTicket = useArchiveTicket()
 
@@ -150,8 +152,15 @@ export function TicketCard({ ticket, projectId, swimlaneColor }: TicketCardProps
         </Tooltip>
       )}
 
-      {/* Ticket ID */}
-      <div className="text-xs text-text-muted font-mono mb-1">{ticket.id}</div>
+      {/* Ticket ID + Epic badge */}
+      <div className="flex items-center gap-1.5 mb-1">
+        <span className="text-xs text-text-muted font-mono">{ticket.id}</span>
+        {ticketEpic && (
+          <span className="text-[10px] px-1 py-0.5 rounded bg-blue-500/10 text-blue-400 font-mono">
+            {ticketEpic.identifier}
+          </span>
+        )}
+      </div>
 
       {/* Ticket Title */}
       <div className="text-text-primary text-sm font-medium line-clamp-2 mb-2">

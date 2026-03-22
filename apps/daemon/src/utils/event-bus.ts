@@ -19,7 +19,11 @@ type EventName =
   | "ticket:task-updated"
   | "log:entry"
   | "processing:sync"
-  | "folder:updated";
+  | "folder:updated"
+  | "epic:created"
+  | "epic:updated"
+  | "epic:deleted"
+  | "epic:message";
 
 class EventBus extends EventEmitter {
   private clients: Set<Response> = new Set();
@@ -56,6 +60,10 @@ const forwardEvents: EventName[] = [
   "log:entry",
   "processing:sync",
   "folder:updated",
+  "epic:created",
+  "epic:updated",
+  "epic:deleted",
+  "epic:message",
 ];
 
 for (const event of forwardEvents) {

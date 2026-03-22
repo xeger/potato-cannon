@@ -1,5 +1,5 @@
 import { useState, useMemo, useCallback, useEffect } from 'react'
-import { useLocation } from '@tanstack/react-router'
+import { useLocation, useNavigate } from '@tanstack/react-router'
 import { Loader2, X } from 'lucide-react'
 import { useAppStore } from '@/stores/appStore'
 import {
@@ -7,7 +7,9 @@ import {
   useProjectPhases,
   useUpdateTicket,
   useProjects,
-  useTemplate
+  useTemplate,
+  useEpics,
+  useAssignTicketToEpic,
 } from '@/hooks/queries'
 import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs'
 import {
@@ -53,6 +55,10 @@ export function TicketDetailPanel() {
   const ticketSheetProjectId = useAppStore((s) => s.ticketSheetProjectId)
   const closeTicketSheet = useAppStore((s) => s.closeTicketSheet)
   const currentProjectId = useAppStore((s) => s.currentProjectId)
+  const openEpicSheet = useAppStore((s) => s.openEpicSheet)
+  const navigate = useNavigate()
+  const { data: epics } = useEpics(currentProjectId)
+  const assignToEpic = useAssignTicketToEpic()
 
   // Only show panel on board view and when viewing the same project where the ticket was opened
   const location = useLocation()
@@ -187,6 +193,26 @@ export function TicketDetailPanel() {
                     <Badge variant="outline" className="text-text-muted font-mono text-xs">
                       {ticket.id}
                     </Badge>
+                    {(() => {
+                      const ticketEpic = epics?.find((e) => e.id === ticket.epicId)
+                      return ticketEpic ? (
+                        <button
+                          type="button"
+                          onClick={() => {
+                            if (ticketSheetProjectId) {
+                              const projectSlug = location.pathname.match(/^\/projects\/([^/]+)/)?.[1]
+                              if (projectSlug) {
+                                navigate({ to: '/projects/$projectId/epics', params: { projectId: projectSlug } })
+                                openEpicSheet(ticketSheetProjectId, ticketEpic.id)
+                              }
+                            }
+                          }}
+                          className="text-xs px-1.5 py-0.5 rounded bg-blue-500/15 text-blue-400 hover:bg-blue-500/25 transition-colors"
+                        >
+                          {ticketEpic.identifier}
+                        </button>
+                      ) : null
+                    })()}
                   </div>
                   <h2 className="text-text-primary text-lg font-semibold">
                     {ticket.title}
@@ -210,6 +236,36 @@ export function TicketDetailPanel() {
                   <p className="text-xs text-text-muted mt-2">
                     Created {timeAgo(ticket.createdAt)} • Updated {timeAgo(ticket.updatedAt)}
                   </p>
+
+                  {/* Epic assignment */}
+                  {epics && epics.length > 0 && (
+                    <div className="mt-3 flex items-center gap-2">
+                      <span className="text-xs text-text-muted">Epic:</span>
+                      <Select
+                        value={ticket.epicId || '__none__'}
+                        onValueChange={(value) => {
+                          if (!currentProjectId || !ticketSheetTicketId) return
+                          assignToEpic.mutate({
+                            projectId: currentProjectId,
+                            ticketId: ticketSheetTicketId,
+                            epicId: value === '__none__' ? null : value,
+                          })
+                        }}
+                      >
+                        <SelectTrigger className="h-7 text-xs w-[200px]">
+                          <SelectValue />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="__none__">None</SelectItem>
+                          {epics.map((epic) => (
+                            <SelectItem key={epic.id} value={epic.id}>
+                              {epic.identifier} — {epic.title}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    </div>
+                  )}
 
                   {/* Phase selector - mobile only */}
                   <div className="mt-4 flex items-center gap-2 sm:hidden">

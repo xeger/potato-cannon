@@ -311,6 +311,13 @@ export class ChatService {
         message: { type: "question", text: question, options, timestamp: now },
       });
     }
+    if (context.epicId) {
+      eventBus.emit("epic:message", {
+        projectId: context.projectId,
+        epicId: context.epicId,
+        message: { type: "question", text: question, options, timestamp: now, conversationId: questionMessageId },
+      });
+    }
 
     // Broadcast to providers (Telegram, Slack, etc.)
     const providers = this.getActiveProviders();
@@ -358,6 +365,13 @@ export class ChatService {
       eventBus.emit("brainstorm:message", {
         projectId: context.projectId,
         brainstormId: context.brainstormId,
+        message: { type: "notification", text: message, timestamp: now },
+      });
+    }
+    if (context.epicId) {
+      eventBus.emit("epic:message", {
+        projectId: context.projectId,
+        epicId: context.epicId,
         message: { type: "notification", text: message, timestamp: now },
       });
     }
@@ -422,6 +436,13 @@ export class ChatService {
           eventBus.emit("brainstorm:message", {
             projectId: context.projectId,
             brainstormId: context.brainstormId,
+            message: { type: "user", text: answer, timestamp: new Date().toISOString() },
+          });
+        }
+        if (context.epicId) {
+          eventBus.emit("epic:message", {
+            projectId: context.projectId,
+            epicId: context.epicId,
             message: { type: "user", text: answer, timestamp: new Date().toISOString() },
           });
         }
@@ -499,11 +520,11 @@ export class ChatService {
   }
 
   private getContextKey(context: ChatContext): string {
-    return `${context.projectId}:${context.ticketId || context.brainstormId}`;
+    return `${context.projectId}:${context.ticketId || context.brainstormId || context.epicId}`;
   }
 
   private getContextId(context: ChatContext): string {
-    return context.ticketId || context.brainstormId || "";
+    return context.ticketId || context.brainstormId || context.epicId || "";
   }
 
   private generateConversationId(): string {
@@ -526,6 +547,13 @@ export class ChatService {
       const row = db
         .prepare("SELECT conversation_id FROM brainstorms WHERE id = ?")
         .get(context.brainstormId) as { conversation_id: string | null } | undefined;
+      return row?.conversation_id || null;
+    }
+
+    if (context.epicId) {
+      const row = db
+        .prepare("SELECT conversation_id FROM epics WHERE id = ?")
+        .get(context.epicId) as { conversation_id: string | null } | undefined;
       return row?.conversation_id || null;
     }
 

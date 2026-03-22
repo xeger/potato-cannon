@@ -1,11 +1,19 @@
-import { useState, useCallback, type KeyboardEvent } from 'react'
+import { useState, useCallback, useEffect, type KeyboardEvent } from 'react'
 import { useQueryClient } from '@tanstack/react-query'
 import { Loader2 } from 'lucide-react'
 import { useAppStore } from '@/stores/appStore'
 import { api } from '@/api/client'
+import { useEpics } from '@/hooks/queries'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Textarea } from '@/components/ui/textarea'
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select'
 import {
   Dialog,
   DialogContent,
@@ -19,9 +27,20 @@ export function AddTicketModal() {
   const queryClient = useQueryClient()
   const currentProjectId = useAppStore((s) => s.currentProjectId)
   const isOpen = useAppStore((s) => s.addTicketModalOpen)
+  const preSelectedEpicId = useAppStore((s) => s.addTicketModalEpicId)
   const closeModal = useAppStore((s) => s.closeAddTicketModal)
+  const openCreateEpicModal = useAppStore((s) => s.openCreateEpicModal)
+  const { data: epics } = useEpics(currentProjectId)
 
   const [title, setTitle] = useState('')
+  const [selectedEpicId, setSelectedEpicId] = useState<string>('')
+
+  // Sync pre-selected epicId when modal opens
+  useEffect(() => {
+    if (isOpen && preSelectedEpicId) {
+      setSelectedEpicId(preSelectedEpicId)
+    }
+  }, [isOpen, preSelectedEpicId])
   const [description, setDescription] = useState('')
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [error, setError] = useState<string | null>(null)
@@ -49,6 +68,7 @@ export function AddTicketModal() {
     setTicketNumber('')
     setTicketNumberError(null)
     setError(null)
+    setSelectedEpicId('')
   }, [])
 
   const handleClose = useCallback(() => {
@@ -69,6 +89,7 @@ export function AddTicketModal() {
         title.trim(),
         description.trim() || undefined,
         trimmedTicketNumber || undefined,
+        selectedEpicId || undefined,
       )
       queryClient.invalidateQueries({ queryKey: ['tickets', currentProjectId] })
       handleClose()
@@ -77,7 +98,7 @@ export function AddTicketModal() {
     } finally {
       setIsSubmitting(false)
     }
-  }, [currentProjectId, title, description, ticketNumber, ticketNumberError, queryClient, handleClose])
+  }, [currentProjectId, title, description, ticketNumber, ticketNumberError, selectedEpicId, queryClient, handleClose])
 
   const handleKeyDown = (e: KeyboardEvent<HTMLInputElement>) => {
     if (e.key === 'Enter' && title.trim() && !isSubmitting) {
@@ -131,6 +152,39 @@ export function AddTicketModal() {
             {ticketNumberError && (
               <p className="text-sm text-accent-red">{ticketNumberError}</p>
             )}
+          </div>
+
+          {/* Epic field */}
+          <div className="space-y-2">
+            <label className="text-sm text-text-secondary">
+              Epic <span className="text-text-muted">(optional)</span>
+            </label>
+            <Select
+              value={selectedEpicId}
+              onValueChange={(value) => {
+                if (value === '__create__') {
+                  if (currentProjectId) openCreateEpicModal(currentProjectId)
+                } else {
+                  setSelectedEpicId(value === '__none__' ? '' : value)
+                }
+              }}
+              disabled={isSubmitting}
+            >
+              <SelectTrigger className="bg-bg-tertiary border-border">
+                <SelectValue placeholder="Epic (optional)" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="__none__">None</SelectItem>
+                {epics?.map((epic) => (
+                  <SelectItem key={epic.id} value={epic.id}>
+                    {epic.identifier} — {epic.title}
+                  </SelectItem>
+                ))}
+                <SelectItem value="__create__" className="text-accent">
+                  + Create New Epic
+                </SelectItem>
+              </SelectContent>
+            </Select>
           </div>
 
           <div className="space-y-2">

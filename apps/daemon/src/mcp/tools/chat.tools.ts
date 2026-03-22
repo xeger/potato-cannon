@@ -69,6 +69,7 @@ function toContext(ctx: McpContext): ChatContext {
     projectId: ctx.projectId,
     ticketId: ctx.ticketId || undefined,
     brainstormId: ctx.brainstormId || undefined,
+    epicId: ctx.epicId || undefined,
   };
 }
 

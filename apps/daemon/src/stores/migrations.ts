@@ -1,6 +1,6 @@
 import type Database from "better-sqlite3";
 
-const CURRENT_SCHEMA_VERSION = 11;
+const CURRENT_SCHEMA_VERSION = 13;
 
 /**
  * Run database migrations.
@@ -51,6 +51,14 @@ export function runMigrations(db: Database.Database): void {
 
   if (version < 11) {
     migrateV11(db);
+  }
+
+  if (version < 12) {
+    migrateV12(db);
+  }
+
+  if (version < 13) {
+    migrateV13(db);
   }
 
   db.pragma(`user_version = ${CURRENT_SCHEMA_VERSION}`);
@@ -483,8 +491,64 @@ function migrateV10(db: Database.Database): void {
 }
 
 /**
- * V11: Add reason column to ticket_history (for block reasons)
+ * V11: Epics table, epic_counters, and epic_id FK on tickets
  */
 function migrateV11(db: Database.Database): void {
+  db.exec(`
+    CREATE TABLE IF NOT EXISTS epics (
+      id          TEXT PRIMARY KEY,
+      project_id  TEXT NOT NULL REFERENCES projects(id) ON DELETE CASCADE,
+      epic_number INTEGER NOT NULL,
+      title       TEXT NOT NULL,
+      description TEXT,
+      conversation_id TEXT,
+      created_at  TEXT NOT NULL,
+      updated_at  TEXT NOT NULL,
+      UNIQUE(project_id, epic_number)
+    );
+
+    CREATE INDEX IF NOT EXISTS idx_epics_project ON epics(project_id);
+  `);
+
+  // Backfill conversation_id if table already existed without it
+  const epicColumns = db.pragma("table_info(epics)") as { name: string }[];
+  const hasConversationId = epicColumns.some((col) => col.name === "conversation_id");
+  if (!hasConversationId) {
+    db.exec(`ALTER TABLE epics ADD COLUMN conversation_id TEXT`);
+  }
+
+  db.exec(`
+    CREATE TABLE IF NOT EXISTS epic_counters (
+      project_id  TEXT PRIMARY KEY REFERENCES projects(id) ON DELETE CASCADE,
+      next_number INTEGER NOT NULL DEFAULT 1
+    );
+  `);
+
+  // ALTER TABLE is not idempotent — check if column exists first
+  const ticketColumns = db.pragma("table_info(tickets)") as { name: string }[];
+  const hasEpicId = ticketColumns.some((col) => col.name === "epic_id");
+  if (!hasEpicId) {
+    db.exec(`ALTER TABLE tickets ADD COLUMN epic_id TEXT REFERENCES epics(id) ON DELETE SET NULL`);
+  }
+
+  // Partial index — only index non-null epic_id values
+  db.exec(`CREATE INDEX IF NOT EXISTS idx_tickets_epic ON tickets(epic_id) WHERE epic_id IS NOT NULL`);
+}
+
+/**
+ * V12: Add conversation_id to epics table (for existing V11 databases)
+ */
+function migrateV12(db: Database.Database): void {
+  const epicColumns = db.pragma("table_info(epics)") as { name: string }[];
+  const hasConversationId = epicColumns.some((col) => col.name === "conversation_id");
+  if (!hasConversationId) {
+    db.exec(`ALTER TABLE epics ADD COLUMN conversation_id TEXT`);
+  }
+}
+
+/**
+ * V13: Add reason column to ticket_history (for block reasons)
+ */
+function migrateV13(db: Database.Database): void {
   db.exec(`ALTER TABLE ticket_history ADD COLUMN reason TEXT`);
 }
