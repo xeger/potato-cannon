@@ -99,7 +99,7 @@ export function BrainstormDetailPanel() {
       className="brainstorm-detail-panel"
       data-open={isOpen}
     >
-      <div className="flex flex-col h-full w-[600px] max-w-[40vw]">
+      <div className="flex flex-col h-full w-full max-w-full">
         {/* Header */}
         <div className="flex items-center justify-between p-4 pb-0">
           <div className="flex items-center gap-2 min-w-0 flex-1">
