@@ -1,5 +1,6 @@
-import { describe, it, expect, vi } from "vitest";
+import { describe, it, expect, vi, beforeEach } from "vitest";
 import { render, screen } from "@testing-library/react";
+import { TouchSensor, KeyboardSensor, PointerSensor } from '@dnd-kit/core'
 import { Board } from "./Board";
 
 // Mock all external dependencies
@@ -65,6 +66,20 @@ vi.mock("./TableView", () => ({
   TableView: () => null,
 }));
 
+// Capture DndContext props to verify sensor configuration
+const mockDndContext = vi.fn()
+vi.mock('@dnd-kit/core', async () => {
+  const actual = await vi.importActual('@dnd-kit/core')
+  return {
+    ...actual,
+    DndContext: (props: any) => {
+      mockDndContext(props)
+      return <div data-testid="dnd-context">{props.children}</div>
+    },
+    DragOverlay: ({ children }: any) => <div>{children}</div>,
+  }
+})
+
 // Mock window.matchMedia (needed for Radix UI components)
 Object.defineProperty(window, "matchMedia", {
   writable: true,
@@ -129,4 +144,48 @@ describe("Board - Add Ticket button placement", () => {
     expect(header?.className).toMatch(/justify-end/);
     expect(header?.className).not.toMatch(/justify-between/);
   });
+});
+
+describe('Board - Sensor Configuration', () => {
+  beforeEach(() => {
+    mockDndContext.mockClear()
+  })
+
+  it('registers PointerSensor, TouchSensor, and KeyboardSensor', () => {
+    render(<Board projectId="test-project" />)
+
+    expect(mockDndContext).toHaveBeenCalled()
+    const props = mockDndContext.mock.calls[0][0]
+    const sensorDescriptors = props.sensors
+
+    expect(sensorDescriptors).toHaveLength(3)
+
+    const sensorTypes = sensorDescriptors.map((s: any) => s.sensor)
+    expect(sensorTypes).toContain(PointerSensor)
+    expect(sensorTypes).toContain(TouchSensor)
+    expect(sensorTypes).toContain(KeyboardSensor)
+  })
+
+  it('configures TouchSensor with 200ms delay and 5px tolerance', () => {
+    render(<Board projectId="test-project" />)
+
+    const props = mockDndContext.mock.calls[0][0]
+    const touchDescriptor = props.sensors.find((s: any) => s.sensor === TouchSensor)
+
+    expect(touchDescriptor.options.activationConstraint).toEqual({
+      delay: 200,
+      tolerance: 5,
+    })
+  })
+
+  it('preserves PointerSensor with 5px distance constraint', () => {
+    render(<Board projectId="test-project" />)
+
+    const props = mockDndContext.mock.calls[0][0]
+    const pointerDescriptor = props.sensors.find((s: any) => s.sensor === PointerSensor)
+
+    expect(pointerDescriptor.options.activationConstraint).toEqual({
+      distance: 5,
+    })
+  })
 });
