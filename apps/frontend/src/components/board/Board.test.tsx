@@ -189,3 +189,13 @@ describe('Board - Sensor Configuration', () => {
     })
   })
 });
+
+describe('Board - Scroll Container', () => {
+  it('applies board-scroll-container class to the horizontal scroll div', () => {
+    const { container } = render(<Board projectId="test-project" />)
+
+    const scrollContainer = container.querySelector('.board-scroll-container')
+    expect(scrollContainer).toBeTruthy()
+    expect(scrollContainer?.classList.contains('overflow-x-auto')).toBe(true)
+  })
+});

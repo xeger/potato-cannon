@@ -1,4 +1,4 @@
-import { useState, useMemo, useCallback } from 'react'
+import { useState, useMemo, useCallback, useRef, useEffect } from 'react'
 import {
   DndContext,
   DragEndEvent,
@@ -209,6 +209,27 @@ export function Board({ projectId }: BoardProps) {
     hasAutomation: boolean
   } | null>(null)
 
+  const scrollContainerRef = useRef<HTMLDivElement>(null)
+
+  // Remap vertical scroll wheel to horizontal scroll on the board container
+  useEffect(() => {
+    const el = scrollContainerRef.current
+    if (!el) return
+
+    const handleWheel = (e: WheelEvent) => {
+      if (e.deltaY === 0) return
+
+      const isPageScrollable = document.documentElement.scrollHeight > document.documentElement.clientHeight
+      if (isPageScrollable) return
+
+      e.preventDefault()
+      el.scrollLeft += e.deltaY
+    }
+
+    el.addEventListener('wheel', handleWheel, { passive: false })
+    return () => el.removeEventListener('wheel', handleWheel)
+  }, [boardViewMode])
+
   // Group tickets by phase
   const ticketsByPhase = useMemo(() => {
     const grouped: Record<string, Ticket[]> = {}
@@ -377,7 +398,7 @@ export function Board({ projectId }: BoardProps) {
       ) : (
         <div className="flex-1 min-h-0 h-full">
           <DndContext sensors={sensors} onDragStart={handleDragStart} onDragEnd={handleDragEnd}>
-            <div className="h-full overflow-x-auto overflow-y-hidden p-4">
+            <div ref={scrollContainerRef} className="board-scroll-container h-full overflow-x-auto overflow-y-hidden p-4">
               <div className="flex gap-4 h-full">
                 {/* Brainstorm column */}
                 <div className="shrink-0">
