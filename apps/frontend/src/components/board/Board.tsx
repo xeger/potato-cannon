@@ -1,4 +1,4 @@
-import { useState, useMemo, useCallback } from 'react'
+import { useState, useMemo, useCallback, useRef } from 'react'
 import {
   DndContext,
   DragEndEvent,
@@ -21,6 +21,7 @@ import {
   useToggleAutomatedPhase,
   useUpdateProject
 } from '@/hooks/queries'
+import { handleVerticalToHorizontalScroll } from '@/lib/scroll-translation'
 import { TemplateUpgradeBanner } from '@/components/TemplateUpgradeBanner'
 import { ArchivedSwimlane } from './ArchivedSwimlane'
 import { BoardColumn } from './BoardColumn'
@@ -209,6 +210,28 @@ export function Board({ projectId }: BoardProps) {
     hasAutomation: boolean
   } | null>(null)
 
+  const scrollCleanupRef = useRef<(() => void) | null>(null)
+
+  // Callback ref: attaches wheel listener when the board container mounts.
+  // useEffect can miss this element because it's behind loading/error early returns;
+  // a callback ref fires exactly when the element enters/leaves the DOM.
+  const scrollContainerRef = useCallback((el: HTMLDivElement | null) => {
+    scrollCleanupRef.current?.()
+    scrollCleanupRef.current = null
+
+    if (!el) return
+
+    const handleWheel = (e: WheelEvent) => {
+      handleVerticalToHorizontalScroll(e, el)
+    }
+
+    el.addEventListener('wheel', handleWheel, { passive: false })
+
+    scrollCleanupRef.current = () => {
+      el.removeEventListener('wheel', handleWheel)
+    }
+  }, [])
+
   // Group tickets by phase
   const ticketsByPhase = useMemo(() => {
     const grouped: Record<string, Ticket[]> = {}
@@ -377,7 +400,7 @@ export function Board({ projectId }: BoardProps) {
       ) : (
         <div className="flex-1 min-h-0 h-full">
           <DndContext sensors={sensors} onDragStart={handleDragStart} onDragEnd={handleDragEnd}>
-            <div className="h-full overflow-x-auto overflow-y-hidden p-4">
+            <div ref={scrollContainerRef} className="board-scroll-container h-full overflow-x-auto overflow-y-hidden p-4">
               <div className="flex gap-4 h-full">
                 {/* Brainstorm column */}
                 <div className="shrink-0">
