@@ -4,7 +4,9 @@ import {
   DragEndEvent,
   DragOverlay,
   DragStartEvent,
+  KeyboardSensor,
   PointerSensor,
+  TouchSensor,
   useSensor,
   useSensors
 } from '@dnd-kit/core'
@@ -172,14 +174,23 @@ export function Board({ projectId }: BoardProps) {
     [projectId, currentProject, updateProject]
   )
 
-  // Sensors for drag and drop - require 5px movement before activating drag
-  // This allows clicks to work normally on ticket cards
+  // Sensors for drag and drop
+  // PointerSensor: desktop mouse drag (5px movement before activating)
+  // TouchSensor: mobile long-press drag (200ms delay to avoid conflict with scroll)
+  // KeyboardSensor: keyboard accessibility (arrow keys + Enter)
   const sensors = useSensors(
     useSensor(PointerSensor, {
       activationConstraint: {
         distance: 5
       }
-    })
+    }),
+    useSensor(TouchSensor, {
+      activationConstraint: {
+        delay: 200,
+        tolerance: 5
+      }
+    }),
+    useSensor(KeyboardSensor)
   )
 
   // Local state
