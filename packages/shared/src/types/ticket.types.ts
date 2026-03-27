@@ -38,4 +38,5 @@ export interface TicketHistoryEntry {
   sessionId?: string
   sessions?: HistorySessionRecord[]
   endedAt?: string
+  reason?: string
 }

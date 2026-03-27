@@ -1,6 +1,6 @@
 import type Database from "better-sqlite3";
 
-const CURRENT_SCHEMA_VERSION = 12;
+const CURRENT_SCHEMA_VERSION = 13;
 
 /**
  * Run database migrations.
@@ -55,6 +55,10 @@ export function runMigrations(db: Database.Database): void {
 
   if (version < 12) {
     migrateV12(db);
+  }
+
+  if (version < 13) {
+    migrateV13(db);
   }
 
   db.pragma(`user_version = ${CURRENT_SCHEMA_VERSION}`);
@@ -540,4 +544,11 @@ function migrateV12(db: Database.Database): void {
   if (!hasConversationId) {
     db.exec(`ALTER TABLE epics ADD COLUMN conversation_id TEXT`);
   }
+}
+
+/**
+ * V13: Add reason column to ticket_history (for block reasons)
+ */
+function migrateV13(db: Database.Database): void {
+  db.exec(`ALTER TABLE ticket_history ADD COLUMN reason TEXT`);
 }

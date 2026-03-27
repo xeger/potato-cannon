@@ -429,6 +429,13 @@ export function DetailsTab({ projectId, ticketId, description, history }: Detail
                         )}
                       </div>
 
+                      {/* Block reason */}
+                      {entry.reason && (
+                        <p className="text-sm text-amber-400 mb-2">
+                          {entry.reason}
+                        </p>
+                      )}
+
                       {/* Timestamp */}
                       <div className="flex items-center gap-2 text-xs text-text-muted">
                         <Clock className="h-3 w-3" />
