@@ -325,9 +325,11 @@ export function ArtifactChat({
             )}
           </Button>
         </div>
-        <p className="text-xs text-text-muted mt-2">
-          Press Enter to send, Shift+Enter for new line
-        </p>
+        {sessionActive && (
+          <p className="text-xs text-text-muted mt-2">
+            Press Enter to send, Shift+Enter for new line
+          </p>
+        )}
       </div>
     </div>
   )
