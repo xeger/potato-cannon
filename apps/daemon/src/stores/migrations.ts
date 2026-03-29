@@ -550,5 +550,8 @@ function migrateV12(db: Database.Database): void {
  * V13: Add reason column to ticket_history (for block reasons)
  */
 function migrateV13(db: Database.Database): void {
-  db.exec(`ALTER TABLE ticket_history ADD COLUMN reason TEXT`);
+  const columns = db.pragma("table_info(ticket_history)") as { name: string }[];
+  if (!columns.some((c) => c.name === "reason")) {
+    db.exec(`ALTER TABLE ticket_history ADD COLUMN reason TEXT`);
+  }
 }
