@@ -1,10 +1,12 @@
-import { useState, useMemo, useCallback } from 'react'
+import { useState, useMemo, useCallback, useRef } from 'react'
 import {
   DndContext,
   DragEndEvent,
   DragOverlay,
   DragStartEvent,
+  KeyboardSensor,
   PointerSensor,
+  TouchSensor,
   useSensor,
   useSensors
 } from '@dnd-kit/core'
@@ -19,6 +21,7 @@ import {
   useToggleAutomatedPhase,
   useUpdateProject
 } from '@/hooks/queries'
+import { handleVerticalToHorizontalScroll } from '@/lib/scroll-translation'
 import { TemplateUpgradeBanner } from '@/components/TemplateUpgradeBanner'
 import { ArchivedSwimlane } from './ArchivedSwimlane'
 import { BoardColumn } from './BoardColumn'
@@ -172,14 +175,23 @@ export function Board({ projectId }: BoardProps) {
     [projectId, currentProject, updateProject]
   )
 
-  // Sensors for drag and drop - require 5px movement before activating drag
-  // This allows clicks to work normally on ticket cards
+  // Sensors for drag and drop
+  // PointerSensor: desktop mouse drag (5px movement before activating)
+  // TouchSensor: mobile long-press drag (200ms delay to avoid conflict with scroll)
+  // KeyboardSensor: keyboard accessibility (arrow keys + Enter)
   const sensors = useSensors(
     useSensor(PointerSensor, {
       activationConstraint: {
         distance: 5
       }
-    })
+    }),
+    useSensor(TouchSensor, {
+      activationConstraint: {
+        delay: 200,
+        tolerance: 5
+      }
+    }),
+    useSensor(KeyboardSensor)
   )
 
   // Local state
@@ -197,6 +209,28 @@ export function Board({ projectId }: BoardProps) {
     phaseName: string
     hasAutomation: boolean
   } | null>(null)
+
+  const scrollCleanupRef = useRef<(() => void) | null>(null)
+
+  // Callback ref: attaches wheel listener when the board container mounts.
+  // useEffect can miss this element because it's behind loading/error early returns;
+  // a callback ref fires exactly when the element enters/leaves the DOM.
+  const scrollContainerRef = useCallback((el: HTMLDivElement | null) => {
+    scrollCleanupRef.current?.()
+    scrollCleanupRef.current = null
+
+    if (!el) return
+
+    const handleWheel = (e: WheelEvent) => {
+      handleVerticalToHorizontalScroll(e, el)
+    }
+
+    el.addEventListener('wheel', handleWheel, { passive: false })
+
+    scrollCleanupRef.current = () => {
+      el.removeEventListener('wheel', handleWheel)
+    }
+  }, [])
 
   // Group tickets by phase
   const ticketsByPhase = useMemo(() => {
@@ -366,7 +400,7 @@ export function Board({ projectId }: BoardProps) {
       ) : (
         <div className="flex-1 min-h-0 h-full">
           <DndContext sensors={sensors} onDragStart={handleDragStart} onDragEnd={handleDragEnd}>
-            <div className="h-full overflow-x-auto overflow-y-hidden p-4">
+            <div ref={scrollContainerRef} className="board-scroll-container h-full overflow-x-auto overflow-y-hidden p-4">
               <div className="flex gap-4 h-full">
                 {/* Brainstorm column */}
                 <div className="shrink-0">

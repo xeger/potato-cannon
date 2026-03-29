@@ -1145,3 +1145,18 @@ button, a, [role="button"] {
     transition: none;
   }
 }
+
+/* ================================================
+   MOBILE SCROLL-SNAP FOR BOARD COLUMNS
+   Snaps to column edges on swipe deceleration
+   ================================================ */
+@media (max-width: 640px) {
+  .board-scroll-container {
+    scroll-snap-type: x proximity;
+  }
+
+  .board-scroll-container > div > .swimlane-flip-container,
+  .board-scroll-container > div > :first-child {
+    scroll-snap-align: start;
+  }
+}
